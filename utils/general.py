@@ -270,7 +270,12 @@ def write_pred_video(video_file, pred_dict, save_file, traj_len=8, label_df=None
     cap = cv2.VideoCapture(video_file)
     fps = int(cap.get(cv2.CAP_PROP_FPS))
     w, h = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-    fourcc = int(cap.get(cv2.CAP_PROP_FOURCC))
+    # fourcc = int(cap.get(cv2.CAP_PROP_FOURCC))
+    # Video config (DON'T reuse input codec; OpenCV often can't encode H.264)
+    if save_file.lower().endswith(".mp4"):
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")   # widely supported
+    else:
+        fourcc = cv2.VideoWriter_fourcc(*"MJPG")   # very compatible for .avi
 
     # Read ground truth label if exists
     if label_df is not None:
@@ -281,6 +286,11 @@ def write_pred_video(video_file, pred_dict, save_file, traj_len=8, label_df=None
 
     # Video config
     out = cv2.VideoWriter(save_file, fourcc, fps, (w, h))
+    if not out.isOpened():
+        # last-resort fallback
+        fourcc = cv2.VideoWriter_fourcc(*"MJPG")
+        save_file = save_file.rsplit(".", 1)[0] + ".avi"
+        out = cv2.VideoWriter(save_file, fourcc, fps, (w, h))
     
     # Create a queue for storing trajectory
     pred_queue = deque()
