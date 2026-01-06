@@ -9,6 +9,7 @@ from tqdm import tqdm
 from torch.utils.data import Dataset, IterableDataset
 from utils.general import get_rally_dirs, get_match_median, HEIGHT, WIDTH, SIGMA, IMG_FORMAT
 import time
+from collections import deque
 
 data_dir = 'data'
 
@@ -723,35 +724,84 @@ class Video_IterableDataset(IterableDataset):
                 self.median = self.__gen_median__(max_sample_num, video_range)
 
     def __iter__(self):
-        """Return the data sequentially."""
+        """Return the data sequentially (fast + correct EOF behavior)."""
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-        success = True
-        start_f_id, end_f_id = 0, 0
-        frame_list = []
 
-        while success:
-            # Sample frames
-            while len(frame_list) < self.seq_len:
-                success, frame = self.cap.read()
-                if not success:
-                    break
-                frame_list.append(frame)
-                end_f_id += 1
+        seq_len = self.seq_len
+        step = self.sliding_step
+        window = deque(maxlen=seq_len)
 
-            # Form a sequence
-            data_idx = [(0, i) for i in range(start_f_id, end_f_id)]
-            if len(data_idx) < self.seq_len:
-                # Padding the last sequence if incomplete
-                data_idx.extend([(0, end_f_id - 1)] * (self.seq_len - len(data_idx)))
-                frame_list.extend([frame_list[-1]] * (self.seq_len - len(frame_list)))
+        start_f_id = 0
+        end_f_id = 0  # next frame id to be read
+        eof = False
+        yielded_padded_tail = False
 
-            data_idx = np.array(data_idx)
-            frames = self.__process__(np.array(frame_list)[..., ::-1])  # BGR->RGB
+        # Fill initial window
+        while len(window) < seq_len:
+            ok, frame = self.cap.read()
+            if not ok:
+                eof = True
+                break
+            window.append(frame)
+            end_f_id += 1
+
+        if len(window) == 0:
+            self.cap.release()
+            return
+
+        while True:
+            # Build indices for current window
+            real_n = len(window)
+
+            # If we hit EOF and window is short, pad ONCE (like original)
+            padded_this_round = False
+            if eof and real_n < seq_len:
+                last = window[-1]
+                while len(window) < seq_len:
+                    window.append(last)
+                padded_this_round = True
+                real_n = seq_len
+
+            # data_idx: (seq_len, 2), first col zeros, second col frame ids
+            # end_f_id is "one past last read frame index"
+            cur_start = start_f_id
+            cur_end = min(start_f_id + seq_len, end_f_id)
+
+            ids = np.arange(cur_start, cur_end, dtype=np.int64)
+            if ids.size < seq_len:
+                # pad indices with last valid id
+                last_id = max(0, end_f_id - 1)
+                ids = np.concatenate([ids, np.full((seq_len - ids.size,), last_id, dtype=np.int64)])
+
+            data_idx = np.stack([np.zeros(seq_len, dtype=np.int64), ids], axis=1)
+
+            # Frames: deque -> numpy, then BGR->RGB view
+            frame_arr = np.asarray(list(window), dtype=np.uint8)[..., ::-1]
+            frames = self.__process__(frame_arr)
             yield data_idx, frames
 
-            # Update the sliding window
-            frame_list = frame_list[self.sliding_step :]
-            start_f_id = start_f_id + self.sliding_step
+            # If this was the padded tail, stop (original yields tail once then exits)
+            if padded_this_round:
+                break
+
+            # Advance window by 'step'
+            pop_n = min(step, len(window))
+            for _ in range(pop_n):
+                window.popleft()
+            start_f_id += step
+
+            # Refill window
+            while len(window) < seq_len:
+                ok, frame = self.cap.read()
+                if not ok:
+                    eof = True
+                    break
+                window.append(frame)
+                end_f_id += 1
+
+            # If EOF and nothing left (shouldn't happen usually), stop
+            if eof and len(window) == 0:
+                break
 
         self.cap.release()
 
