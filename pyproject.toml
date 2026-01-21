@@ -1,0 +1,22 @@
+[project]
+name = "tracknetv3"
+version = "0.1.0"
+description = "TrackNetV3"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "dash>=3.4.0",
+    "matplotlib>=3.10.8",
+    "numpy>=1.23.2,<2.0.0",
+    "onnx>=1.19.0",
+    "onnxscript>=0.5.0",
+    "opencv-python>=4.4.0.46,<4.10.0",
+    "pandas==2.0.0",
+    "parse>=1.20.2",
+    "pillow>=12.1.0",
+    "plotly>=6.5.2",
+    "pycocotools>=2.0.11",
+    "tensorboard>=2.20.0",
+    "torch>=2.9.1",
+    "tqdm>=4.67.1",
+]
