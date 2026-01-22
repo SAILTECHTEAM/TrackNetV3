@@ -1,7 +1,7 @@
 """Prediction utilities for TrackNetV3."""
 
-import numpy as np
 import cv2
+import numpy as np
 
 
 def predict_location(heatmap):
@@ -16,9 +16,7 @@ def predict_location(heatmap):
     if np.amax(heatmap) == 0:
         return 0, 0, 0, 0
     else:
-        (cnts, _) = cv2.findContours(
-            heatmap.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-        )
+        (cnts, _) = cv2.findContours(heatmap.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         rects = [cv2.boundingRect(ctr) for ctr in cnts]
 
         max_area_idx = 0

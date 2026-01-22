@@ -10,7 +10,7 @@ class InpaintNet(nn.Module):
     """1D CNN based model for shuttlecock trajectory inpainting."""
 
     def __init__(self):
-        super(InpaintNet, self).__init__()
+        super().__init__()
         self.down_1 = Conv1DBlock(3, 32)
         self.down_2 = Conv1DBlock(32, 64)
         self.down_3 = Conv1DBlock(64, 128)

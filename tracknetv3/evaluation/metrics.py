@@ -1,13 +1,13 @@
 """Evaluation metrics for TrackNetV3."""
 
 import math
+
 import numpy as np
 import torch
 
-from tracknetv3.config.constants import HEIGHT, WIDTH, COOR_TH
-from tracknetv3.utils.general import to_img_format, to_img
+from tracknetv3.config.constants import HEIGHT, WIDTH
 from tracknetv3.evaluation.predict import predict_location
-
+from tracknetv3.utils.general import to_img, to_img_format
 
 pred_types = ["TP", "TN", "FP1", "FP2", "FN"]
 pred_types_map = {pred_type: i for i, pred_type in enumerate(pred_types)}
@@ -54,6 +54,11 @@ def evaluate(
         "Visibility_GT": [],
     }
 
+    # Pre-initialize variables to satisfy static analysis and ensure defined
+    h_pred = None
+    bbox_pred = (0, 0, 0, 0)
+    conf = 0.0
+
     batch_size, seq_len = indices.shape[0], indices.shape[1]
     indices = (
         indices.detach().cpu().numpy().tolist()
@@ -62,7 +67,10 @@ def evaluate(
     )
 
     if y_true is not None and y_pred is not None:
-        assert c_true is None and c_pred is None, "Invalid input"
+        if c_true is not None or c_pred is not None:
+            raise ValueError(
+                "Invalid input: provide either heatmap tensors or coordinate tensors, not both"
+            )
         y_true = y_true.detach().cpu().numpy() if torch.is_tensor(y_true) else y_true
         y_pred = y_pred.detach().cpu().numpy() if torch.is_tensor(y_pred) else y_pred
         y_true = to_img_format(y_true)
@@ -70,8 +78,12 @@ def evaluate(
         h_pred = y_pred > 0.5
 
     if c_true is not None and c_pred is not None:
-        assert y_true is None and y_pred is None, "Invalid input"
-        assert output_bbox == False, "Coordinate prediction cannot output detection"
+        if y_true is not None or y_pred is not None:
+            raise ValueError(
+                "Invalid input: provide either coordinate tensors or heatmap tensors, not both"
+            )
+        if output_bbox:
+            raise ValueError("Coordinate prediction cannot output detection")
         c_true = c_true.detach().cpu().numpy() if torch.is_tensor(c_true) else c_true
         c_pred = c_pred.detach().cpu().numpy() if torch.is_tensor(c_pred) else c_pred
         c_true[..., 0] = c_true[..., 0] * WIDTH
@@ -97,9 +109,7 @@ def evaluate(
                     elif np.amax(c_p) == 0 and np.amax(c_t) > 0:
                         pred_dict["Type"].append(pred_types_map["FN"])
                     elif np.amax(c_p) > 0 and np.amax(c_t) > 0:
-                        dist = math.sqrt(
-                            pow(cx_pred - cx_true, 2) + pow(cy_pred - cy_true, 2)
-                        )
+                        dist = math.sqrt(pow(cx_pred - cx_true, 2) + pow(cy_pred - cy_true, 2))
                         if dist > tolerance:
                             pred_dict["Type"].append(pred_types_map["FP1"])
                         else:
@@ -137,9 +147,7 @@ def evaluate(
                     elif np.amax(h_p) == 0 and np.amax(y_t) > 0:
                         pred_dict["Type"].append(pred_types_map["FN"])
                     elif np.amax(h_p) > 0 and np.amax(y_t) > 0:
-                        dist = math.sqrt(
-                            pow(cx_pred - cx_true, 2) + pow(cy_pred - cy_true, 2)
-                        )
+                        dist = math.sqrt(pow(cx_pred - cx_true, 2) + pow(cy_pred - cy_true, 2))
                         if dist > tolerance:
                             pred_dict["Type"].append(pred_types_map["FP1"])
                         else:

@@ -1,14 +1,14 @@
 """Neural network models for TrackNetV3."""
 
 from tracknetv3.models.blocks import (
+    Conv1DBlock,
     Conv2DBlock,
+    Double1DConv,
     Double2DConv,
     Triple2DConv,
-    Conv1DBlock,
-    Double1DConv,
 )
-from tracknetv3.models.tracknet import TrackNet
 from tracknetv3.models.inpaintnet import InpaintNet
+from tracknetv3.models.tracknet import TrackNet
 
 __all__ = [
     # Blocks

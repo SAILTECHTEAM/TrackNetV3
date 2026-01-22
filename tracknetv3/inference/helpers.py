@@ -1,14 +1,10 @@
-from typing import Tuple, Dict
-
 import numpy as np
 import torch
 
 from tracknetv3.config.constants import HEIGHT, WIDTH
 
 
-def _predict_from_network_outputs_fast(
-    indices, y_pred=None, c_pred=None, img_scaler=(1, 1)
-):
+def _predict_from_network_outputs_fast(indices, y_pred=None, c_pred=None, img_scaler=(1, 1)):
     """
     Faster version:
     - c_pred: fully vectorized
@@ -60,7 +56,7 @@ def _predict_from_network_outputs_fast(
 
         y_flat = y.reshape(-1, y.shape[-2], y.shape[-1])[keep]
 
-        Hm, Wm = y_flat.shape[-2], y_flat.shape[-1]
+        _Hm, Wm = y_flat.shape[-2], y_flat.shape[-1]
         flat_idx = torch.argmax(y_flat.view(y_flat.shape[0], -1), dim=1).numpy()
 
         ys0 = (flat_idx // Wm).astype(np.int32)

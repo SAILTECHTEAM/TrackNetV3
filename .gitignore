@@ -16,3 +16,18 @@ model_compare.py
 predict_old.py
 *.sh
 *.mp4
+
+# General ignores
+.DS_Store
+__pycache__/
+*.py[cod]
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+
+# Test / cache
+.pytest_cache/
+.mypy_cache/
+.cache/

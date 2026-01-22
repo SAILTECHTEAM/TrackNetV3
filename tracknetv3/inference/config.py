@@ -1,6 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Tuple, Dict, Any, Literal
-
+from typing import Literal
 
 EvalMode = Literal["nonoverlap", "average", "weight"]
 
@@ -13,5 +12,5 @@ class TrackNetConfig:
     eval_mode: EvalMode = "weight"
     large_video: bool = False
     max_sample_num: int = 1800
-    video_range: Optional[Tuple[int, int]] = None  # (start_sec, end_sec) or None
+    video_range: tuple[int, int] | None = None  # (start_sec, end_sec) or None
     num_workers_cap: int = 16

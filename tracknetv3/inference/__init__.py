@@ -1,8 +1,8 @@
 """Inference modules for TrackNetV3."""
 
-from .offline import TrackNetInfer, TrackNetConfig, EvalMode
-from .streaming import TrackNetModule, InpaintModule
 from .helpers import _predict_from_network_outputs_fast
+from .offline import EvalMode, TrackNetConfig, TrackNetInfer
+from .streaming import InpaintModule, TrackNetModule
 
 __all__ = [
     "TrackNetInfer",

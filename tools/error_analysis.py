@@ -1,21 +1,20 @@
-import os
-import cv2
-import json
-import parse
 import argparse
+import json
+import os
+
+import cv2
+import dash
 import numpy as np
 import pandas as pd
-from PIL import Image
-
+import parse
 import plotly.express as px
 import plotly.graph_objects as go
-import dash
 from dash import dcc, html
-from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output
 
+from tracknetv3.config.constants import IMG_FORMAT
 from tracknetv3.datasets import data_dir
-from tracknetv3.utils.general import *
+from tracknetv3.utils.general import get_rally_dirs
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--split", type=str, default="test")
@@ -90,7 +89,7 @@ app.layout = html.Div(
                             id="eval-file-1-dropdown",
                         ),
                     ],
-                    style=dict(width="20%", margin="10px"),
+                    style={"width": "20%", "margin": "10px"},
                 ),
                 html.Div(
                     children=[
@@ -104,7 +103,7 @@ app.layout = html.Div(
                             id="eval-file-2-dropdown",
                         ),
                     ],
-                    style=dict(width="20%", margin="10px"),
+                    style={"width": "20%", "margin": "10px"},
                 ),
                 html.Div(
                     children=[
@@ -112,11 +111,9 @@ app.layout = html.Div(
                             ["Rally ID:"],
                             style={"font-weight": "bold", "text-align": "center"},
                         ),
-                        dcc.Dropdown(
-                            rally_keys, rally_keys[0], id="rally-key-dropdown"
-                        ),
+                        dcc.Dropdown(rally_keys, rally_keys[0], id="rally-key-dropdown"),
                     ],
-                    style=dict(width="20%", margin="10px"),
+                    style={"width": "20%", "margin": "10px"},
                 ),
             ],
             style={
@@ -136,7 +133,7 @@ app.layout = html.Div(
                             config={"scrollZoom": True},
                         ),
                     ],
-                    style=dict(width="90%"),
+                    style={"width": "90%"},
                 ),
             ],
             style={
@@ -148,9 +145,7 @@ app.layout = html.Div(
         # Frame plot
         html.Div(
             children=[
-                dcc.Graph(
-                    id="frame_fig", figure=go.Figure(), config={"scrollZoom": True}
-                ),
+                dcc.Graph(id="frame_fig", figure=go.Figure(), config={"scrollZoom": True}),
             ],
             style={
                 "display": "flex",
@@ -205,28 +200,22 @@ def change_dropdown(eval_file_1, eval_file_2, rally_key):
     )
 
     # Parse prediction result into stack bar chart data
-    bar_list = [dict() for _ in range(2)]
+    bar_list = [{}, {}]
     for i, eval_dict in [(0, eval_dict_1), (1, eval_dict_2)]:
         for pred_type in pred_types:
             bar_list[i][pred_type] = (
                 np.array(eval_dict["Type"]) == pred_types_map[pred_type]
             ).astype("int")
-        bar_list[i]["Error"] = (
-            bar_list[i]["FN"] + bar_list[i]["FP1"] + bar_list[i]["FP2"]
-        )
+        bar_list[i]["Error"] = bar_list[i]["FN"] + bar_list[i]["FP1"] + bar_list[i]["FP2"]
         bar_list[i]["TP"] = bar_list[i]["TP"] * y_min
         bar_list[i]["TN"] = bar_list[i]["TN"] * y_min
 
     # Read ground truth labels
     csv_dir = "corrected_csv" if split == "test" else "csv"
     assert os.path.exists(
-        os.path.join(
-            data_dir, split, f"match{match_id}", csv_dir, f"{rally_id}_ball.csv"
-        )
+        os.path.join(data_dir, split, f"match{match_id}", csv_dir, f"{rally_id}_ball.csv")
     )
-    csv_file = os.path.join(
-        data_dir, split, f"match{match_id}", csv_dir, f"{rally_id}_ball.csv"
-    )
+    csv_file = os.path.join(data_dir, split, f"match{match_id}", csv_dir, f"{rally_id}_ball.csv")
     label_df = pd.read_csv(csv_file, encoding="utf8")
     x_gt, y_gt, vis_gt = (
         np.array(label_df["X"]),
@@ -335,7 +324,7 @@ def change_dropdown(eval_file_1, eval_file_2, rally_key):
 def show_frame(hoverData):
     global match_id, rally_id, x_gt, y_gt, x_pred_1, y_pred_1, x_pred_2, y_pred_2
     traj_len = 16
-    radius, bbox_width, marker_size = 5, 1, 5
+    marker_size = 5
     point_visible = True if mode == "point" else "legendonly"
     traj_visible = True if mode == "traj" else "legendonly"
 
@@ -390,12 +379,7 @@ def show_frame(hoverData):
                 f"rgba({170 + int(80 / traj_len) * i}, {170 + int(80 / traj_len) * i}, 0, 1)"
                 for i in range(traj_len)
             ],
-            text=[
-                f
-                for f in range(
-                    frame_id - int(traj_len / 2), frame_id + int(traj_len / 2) + 1
-                )
-            ],
+            text=list(range(frame_id - int(traj_len / 2), frame_id + int(traj_len / 2) + 1)),
             mode="markers",
             marker_size=marker_size,
             name="pred 1_traj",
@@ -407,15 +391,9 @@ def show_frame(hoverData):
             x=x_pred_2[frame_id - traj_len + 1 : frame_id + 1],
             y=y_pred_2[frame_id - traj_len + 1 : frame_id + 1],
             marker_color=[
-                f"rgba(0, {170 + int(80 / traj_len) * i}, 0, 1)"
-                for i in range(traj_len)
+                f"rgba(0, {170 + int(80 / traj_len) * i}, 0, 1)" for i in range(traj_len)
             ],
-            text=[
-                f
-                for f in range(
-                    frame_id - int(traj_len / 2), frame_id + int(traj_len / 2) + 1
-                )
-            ],
+            text=list(range(frame_id - int(traj_len / 2), frame_id + int(traj_len / 2) + 1)),
             mode="markers",
             marker_size=marker_size,
             name="pred 2_traj",
@@ -427,15 +405,9 @@ def show_frame(hoverData):
             x=x_gt[frame_id - traj_len + 1 : frame_id + 1],
             y=y_gt[frame_id - traj_len + 1 : frame_id + 1],
             marker_color=[
-                f"rgba({170 + int(80 / traj_len) * i}, 0, 0, 1)"
-                for i in range(traj_len)
+                f"rgba({170 + int(80 / traj_len) * i}, 0, 0, 1)" for i in range(traj_len)
             ],
-            text=[
-                f
-                for f in range(
-                    frame_id - int(traj_len / 2), frame_id + int(traj_len / 2) + 1
-                )
-            ],
+            text=list(range(frame_id - int(traj_len / 2), frame_id + int(traj_len / 2) + 1)),
             mode="markers",
             marker_size=marker_size,
             name="gt traj",

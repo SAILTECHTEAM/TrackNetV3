@@ -1,10 +1,9 @@
-import os
-import torch
 import argparse
+
+import torch
 
 from tracknetv3.evaluation.metrics import test
 from tracknetv3.utils.general import get_model
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -19,7 +18,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--split_list",
-        type=lambda splits: [s for s in splits.split(",")],
+        type=lambda splits: list(splits.split(",")),
         default="train,val,test",
         help="split list",
     )
@@ -46,7 +45,5 @@ if __name__ == "__main__":
     tracknet.load_state_dict(ckpt["model"])
 
     for split in args.split_list:
-        print(
-            f"Generating predicted trajectories and inpainting masks for {split} set..."
-        )
+        print(f"Generating predicted trajectories and inpainting masks for {split} set...")
         _ = test((tracknet, None), split, param_dict, save_inpaint_mask=True)

@@ -1,11 +1,13 @@
 import os
-import cv2
 import time
+
+import cv2
+
 from tracknetv3.inference import (
-    TrackNetInfer,
-    TrackNetConfig,
-    TrackNetModule,
     InpaintModule,
+    TrackNetConfig,
+    TrackNetInfer,
+    TrackNetModule,
 )
 
 # (no self.stats here)
@@ -107,9 +109,7 @@ if __name__ == "__main__":
         f"[DONE] total_frames={fid}, outputs={len(results)} (bg_mode={infer.bg_mode}, median_warmup={median_warmup})"
     )
 
-    pred_dict = results_to_pred_dict(
-        results, fid, track_mod.img_scaler, track_mod.img_shape
-    )
+    pred_dict = results_to_pred_dict(results, fid, track_mod.img_scaler, track_mod.img_shape)
 
     print("\n=== Timing (excluding cap.read) ===")
     s = track_mod.stats
@@ -120,9 +120,7 @@ if __name__ == "__main__":
     print(
         f"  forward:    {s['t_forward']:.3f}s  ({s['t_forward'] / max(1, s['push_calls']):.6f}s/call)"
     )
-    print(
-        f"  post:       {s['t_post']:.3f}s  ({s['t_post'] / max(1, s['push_calls']):.6f}s/call)"
-    )
+    print(f"  post:       {s['t_post']:.3f}s  ({s['t_post'] / max(1, s['push_calls']):.6f}s/call)")
     print(f"  median:     {s['t_median']:.3f}s")
 
     if inpaint_mod is not None:
@@ -137,9 +135,5 @@ if __name__ == "__main__":
 
     os.makedirs("pred_result", exist_ok=True)
     infer.save_csv(pred_dict, "pred_result/tennis_ball_stream.csv")
-    infer.save_video(
-        video_path, pred_dict, "pred_result/tennis_ball_stream.mp4", traj_len=8
-    )
-    print(
-        "[SAVED] pred_result/tennis_ball_stream.csv and pred_result/tennis_ball_stream.mp4"
-    )
+    infer.save_video(video_path, pred_dict, "pred_result/tennis_ball_stream.mp4", traj_len=8)
+    print("[SAVED] pred_result/tennis_ball_stream.csv and pred_result/tennis_ball_stream.mp4")

@@ -1,21 +1,21 @@
-import os
-import cv2
-import json
-import parse
 import argparse
+import json
+import os
+
+import cv2
+import dash
 import numpy as np
 import pandas as pd
-from PIL import Image
-
+import parse
 import plotly.express as px
 import plotly.graph_objects as go
-import dash
 from dash import dcc, html
-from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output
+from dash.exceptions import PreventUpdate
 
+from tracknetv3.config.constants import IMG_FORMAT
 from tracknetv3.datasets import data_dir
-from tracknetv3.utils.general import *
+from tracknetv3.utils.general import get_rally_dirs
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--split", type=str, default="test")
@@ -95,7 +95,7 @@ app.layout = html.Div(
                             id="eval-file-dropdown",
                         ),
                     ],
-                    style=dict(width="20%", margin="10px"),
+                    style={"width": "20%", "margin": "10px"},
                 ),
                 html.Div(
                     children=[
@@ -127,7 +127,7 @@ app.layout = html.Div(
                             config={"scrollZoom": True},
                         ),
                     ],
-                    style=dict(width="90%"),
+                    style={"width": "90%"},
                 ),
             ],
             style={
@@ -161,9 +161,7 @@ app.layout = html.Div(
         # Frame plot
         html.Div(
             children=[
-                dcc.Graph(
-                    id="frame_fig", figure=go.Figure(), config={"scrollZoom": True}
-                ),
+                dcc.Graph(id="frame_fig", figure=go.Figure(), config={"scrollZoom": True}),
             ],
             style={
                 "display": "flex",
@@ -209,9 +207,7 @@ def change_dropdown(eval_file, rally_key):
     match_id, rally_id = rally_key_splits[0], "_".join(rally_key_splits[1:])
 
     # Read ground truth label
-    csv_gt = os.path.join(
-        data_dir, split, f"match{match_id}", "csv", f"{rally_id}_ball.csv"
-    )
+    csv_gt = os.path.join(data_dir, split, f"match{match_id}", "csv", f"{rally_id}_ball.csv")
     gt_df = pd.read_csv(csv_gt, encoding="utf8")
     x_gt, y_gt, vis_gt = (
         np.array(gt_df["X"]),
@@ -239,9 +235,9 @@ def change_dropdown(eval_file, rally_key):
     bar_list = {}
     timestamp = np.arange(len(gt_df))
     for pred_type in pred_types:
-        bar_list[pred_type] = (
-            np.array(eval_dict["Type"]) == pred_types_map[pred_type]
-        ).astype("int")
+        bar_list[pred_type] = (np.array(eval_dict["Type"]) == pred_types_map[pred_type]).astype(
+            "int"
+        )
     bar_list["Error"] = bar_list["FN"] + bar_list["FP1"] + bar_list["FP2"]
     bar_list["TP"] = bar_list["TP"] * y_min
     bar_list["TN"] = bar_list["TN"] * y_min
@@ -280,9 +276,7 @@ def change_dropdown(eval_file, rally_key):
             line_color="gray",
         )
 
-    time_fig.update_yaxes(
-        title_text="Error Count", range=[y_min, y_max], fixedrange=True
-    )
+    time_fig.update_yaxes(title_text="Error Count", range=[y_min, y_max], fixedrange=True)
     time_fig.update_xaxes(title_text="Frame ID")
     time_fig.update_layout(
         barmode="stack",
@@ -318,7 +312,7 @@ def save_corrected_result(n_clicks):
         out_csv_file = os.path.join(correct_dir, f"{rally_id}_ball.csv")
         df = pd.DataFrame(
             {
-                "Frame": [i for i in range(len(vis_correct))],
+                "Frame": list(range(len(vis_correct))),
                 "Visibility": vis_correct,
                 "X": x_correct,
                 "Y": y_correct,
@@ -385,15 +379,8 @@ def show_frame(hoverData, clickData, n_clicks):
             go.Scatter(
                 x=x_gt[frame_id - int(traj_len / 2) : frame_id + int(traj_len / 2) + 1],
                 y=y_gt[frame_id - int(traj_len / 2) : frame_id + int(traj_len / 2) + 1],
-                marker_color=[
-                    f"rgba(255, {170 + 10 * i}, 0, {0.3 + 0.05 * i})" for i in range(9)
-                ],
-                text=[
-                    f
-                    for f in range(
-                        frame_id - int(traj_len / 2), frame_id + int(traj_len / 2) + 1
-                    )
-                ],
+                marker_color=[f"rgba(255, {170 + 10 * i}, 0, {0.3 + 0.05 * i})" for i in range(9)],
+                text=list(range(frame_id - int(traj_len / 2), frame_id + int(traj_len / 2) + 1)),
                 mode="markers",
                 marker_size=marker_size,
                 name="neighbor",
@@ -431,9 +418,13 @@ def show_frame(hoverData, clickData, n_clicks):
             title_text=f"f_{frame_id} label: ({x_correct[frame_id]}, {y_correct[frame_id]})",
         )
         frame_fig.update_layout(
-            legend=dict(
-                orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=0.5
-            )
+            legend={
+                "orientation": "h",
+                "yanchor": "bottom",
+                "y": 1.02,
+                "xanchor": "right",
+                "x": 0.5,
+            }
         )
         return frame_fig
     if trigger == "frame_fig.clickData":
@@ -451,15 +442,8 @@ def show_frame(hoverData, clickData, n_clicks):
             go.Scatter(
                 x=x_gt[frame_id - int(traj_len / 2) : frame_id + int(traj_len / 2) + 1],
                 y=y_gt[frame_id - int(traj_len / 2) : frame_id + int(traj_len / 2) + 1],
-                marker_color=[
-                    f"rgba(255, {170 + 10 * i}, 0, {0.3 + 0.05 * i})" for i in range(9)
-                ],
-                text=[
-                    f
-                    for f in range(
-                        frame_id - int(traj_len / 2), frame_id + int(traj_len / 2) + 1
-                    )
-                ],
+                marker_color=[f"rgba(255, {170 + 10 * i}, 0, {0.3 + 0.05 * i})" for i in range(9)],
+                text=list(range(frame_id - int(traj_len / 2), frame_id + int(traj_len / 2) + 1)),
                 mode="markers",
                 marker_size=marker_size,
                 name="neighbor",
@@ -508,15 +492,18 @@ def show_frame(hoverData, clickData, n_clicks):
             title_text=f"f_{frame_id} label: ({x_correct[frame_id]}, {y_correct[frame_id]})",
         )
         frame_fig.update_layout(
-            legend=dict(
-                orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=0.5
-            )
+            legend={
+                "orientation": "h",
+                "yanchor": "bottom",
+                "y": 1.02,
+                "xanchor": "right",
+                "x": 0.5,
+            }
         )
         return frame_fig
     if trigger == "time_fig.hoverData":
         # Show hovered frame with neighbor labels
         # print(f'hover_data: {hoverData}')
-        selectedData = None
 
         frame_fig = go.Figure()
         frame_fig.add_trace(img_fig.data[0])
@@ -524,15 +511,8 @@ def show_frame(hoverData, clickData, n_clicks):
             go.Scatter(
                 x=x_gt[frame_id - int(traj_len / 2) : frame_id + int(traj_len / 2) + 1],
                 y=y_gt[frame_id - int(traj_len / 2) : frame_id + int(traj_len / 2) + 1],
-                marker_color=[
-                    f"rgba(255, {170 + 10 * i}, 0, {0.3 + 0.05 * i})" for i in range(9)
-                ],
-                text=[
-                    f
-                    for f in range(
-                        frame_id - int(traj_len / 2), frame_id + int(traj_len / 2) + 1
-                    )
-                ],
+                marker_color=[f"rgba(255, {170 + 10 * i}, 0, {0.3 + 0.05 * i})" for i in range(9)],
+                text=list(range(frame_id - int(traj_len / 2), frame_id + int(traj_len / 2) + 1)),
                 mode="markers",
                 marker_size=marker_size,
                 name="neighbor",
@@ -570,9 +550,13 @@ def show_frame(hoverData, clickData, n_clicks):
             title_text=f"f_{frame_id} label: ({x_correct[frame_id]}, {y_correct[frame_id]})",
         )
         frame_fig.update_layout(
-            legend=dict(
-                orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=0.5
-            )
+            legend={
+                "orientation": "h",
+                "yanchor": "bottom",
+                "y": 1.02,
+                "xanchor": "right",
+                "x": 0.5,
+            }
         )
         return frame_fig
     else:

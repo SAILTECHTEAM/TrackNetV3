@@ -1,6 +1,6 @@
-from tracknetv3.inference import TrackNetInfer, TrackNetConfig
 import time
 
+from tracknetv3.inference import TrackNetConfig, TrackNetInfer
 
 if __name__ == "__main__":
     cfg = TrackNetConfig(

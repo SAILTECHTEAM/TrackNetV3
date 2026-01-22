@@ -10,7 +10,7 @@ class TrackNet(nn.Module):
     """U-Net based model for shuttlecock heatmap generation."""
 
     def __init__(self, in_dim, out_dim):
-        super(TrackNet, self).__init__()
+        super().__init__()
         self.down_block_1 = Double2DConv(in_dim, 64)
         self.down_block_2 = Double2DConv(64, 128)
         self.down_block_3 = Triple2DConv(128, 256)
@@ -29,17 +29,11 @@ class TrackNet(nn.Module):
         x3 = self.down_block_3(x)  # (N,  256,   72,   128)
         x = nn.MaxPool2d((2, 2), stride=(2, 2))(x3)  # (N,  256,   36,    64)
         x = self.bottleneck(x)  # (N,  512,   36,    64)
-        x = torch.cat(
-            [nn.Upsample(scale_factor=2)(x), x3], dim=1
-        )  # (N,  768,   72,   128)
+        x = torch.cat([nn.Upsample(scale_factor=2)(x), x3], dim=1)  # (N,  768,   72,   128)
         x = self.up_block_1(x)  # (N,  256,   72,   128)
-        x = torch.cat(
-            [nn.Upsample(scale_factor=2)(x), x2], dim=1
-        )  # (N,  384,  144,   256)
+        x = torch.cat([nn.Upsample(scale_factor=2)(x), x2], dim=1)  # (N,  384,  144,   256)
         x = self.up_block_2(x)  # (N,  128,  144,   256)
-        x = torch.cat(
-            [nn.Upsample(scale_factor=2)(x), x1], dim=1
-        )  # (N,  192,  288,   512)
+        x = torch.cat([nn.Upsample(scale_factor=2)(x), x1], dim=1)  # (N,  192,  288,   512)
         x = self.up_block_3(x)  # (N,   64,  288,   512)
         x = self.predictor(x)  # (N,    3,  288,   512)
         x = self.sigmoid(x)  # (N,    3,  288,   512)

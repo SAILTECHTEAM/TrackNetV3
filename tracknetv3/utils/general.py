@@ -1,24 +1,20 @@
-import os
-import cv2
 import json
-import parse
+import os
 import shutil
+from collections import deque
+
+import cv2
 import numpy as np
 import pandas as pd
-
-from collections import deque
+import parse
 from PIL import Image, ImageDraw
 
 # Import constants and models from tracknetv3
 from tracknetv3.config.constants import (
     HEIGHT,
-    WIDTH,
-    SIGMA,
-    DELTA_T,
-    COOR_TH,
     IMG_FORMAT,
+    WIDTH,
 )
-from tracknetv3.models import TrackNet, InpaintNet, get_model
 
 
 class ResumeArgumentParser:
@@ -117,12 +113,8 @@ def to_img_format(input, num_ch=1):
             # Get each frame in the sequence
             for f in range(0, input.shape[-1], num_ch):
                 img = input[n, :, :, f : f + 3]
-                frame = np.concatenate(
-                    (frame, img.reshape(1, HEIGHT, WIDTH, 3)), axis=0
-                )
-            img_seq = np.concatenate(
-                (img_seq, frame.reshape(1, seq_len, HEIGHT, WIDTH, 3)), axis=0
-            )
+                frame = np.concatenate((frame, img.reshape(1, HEIGHT, WIDTH, 3)), axis=0)
+            img_seq = np.concatenate((img_seq, frame.reshape(1, seq_len, HEIGHT, WIDTH, 3)), axis=0)
 
         return img_seq
 
@@ -140,8 +132,9 @@ def get_num_frames(rally_dir):
 
     try:
         frame_files = list_dirs(rally_dir)
-    except:
-        raise ValueError(f"{rally_dir} does not exist.")
+    except Exception as err:
+        # Distinguish failure to list directory from other errors
+        raise ValueError(f"{rally_dir} does not exist.") from err
     frame_files = [f for f in frame_files if f.split(".")[-1] == IMG_FORMAT]
     return len(frame_files)
 
@@ -185,7 +178,8 @@ def generate_frames(video_file):
         frame_list (List[numpy.ndarray]): List of sampled frames
     """
 
-    assert video_file[-4:] == ".mp4", "Invalid video file format."
+    if not video_file.lower().endswith(".mp4"):
+        raise ValueError("Invalid video file format: must be .mp4")
 
     # Get camera parameters
     cap = cv2.VideoCapture(video_file)
@@ -260,7 +254,7 @@ def write_pred_video(video_file, pred_dict, save_file, traj_len=8, label_df=None
 
     # Read ground truth label if exists
     if label_df is not None:
-        f_i, x, y, vis = (
+        _f_i, x, y, vis = (
             label_df["Frame"],
             label_df["X"],
             label_df["Y"],
@@ -302,9 +296,9 @@ def write_pred_video(video_file, pred_dict, save_file, traj_len=8, label_df=None
             gt_queue.appendleft([x[i], y[i]]) if vis[i] and i < len(
                 label_df
             ) else gt_queue.appendleft(None)
-        pred_queue.appendleft([x_pred[i], y_pred[i]]) if vis_pred[
-            i
-        ] else pred_queue.appendleft(None)
+        pred_queue.appendleft([x_pred[i], y_pred[i]]) if vis_pred[i] else pred_queue.appendleft(
+            None
+        )
 
         # Draw ground truth trajectory if exists
         if label_df is not None:
@@ -407,7 +401,8 @@ def convert_gt_to_coco_json(data_dir, split, drop=False):
                 v[start_f:end_f],
             )
         w, h = Image.open(f"{match_dir}/frame/{rally_id}/0.{IMG_FORMAT}").size
-        for i, cx, cy, vis in zip(f, x, y, v):
+        # Use strict zip to ensure arrays are aligned
+        for i, cx, cy, vis in zip(f, x, y, v, strict=True):
             image_info.append(
                 {
                     "id": sample_count,
@@ -463,9 +458,7 @@ def generate_data_frames(video_file):
     """
 
     # Check file format
-    try:
-        assert video_file[-4:] == ".mp4", "Invalid video file format."
-    except:
+    if not video_file.lower().endswith(".mp4"):
         raise ValueError(f"{video_file} is not a video file.")
 
     # Check if the video has matched csv file
@@ -473,9 +466,8 @@ def generate_data_frames(video_file):
     match_dir, rally_id = parse.parse(file_format_str, video_file)
     csv_file = os.path.join(match_dir, "csv", f"{rally_id}_ball.csv")
     label_df = pd.read_csv(csv_file, encoding="utf8")
-    assert os.path.exists(video_file) and os.path.exists(csv_file), (
-        "Video file or csv file does not exist."
-    )
+    if not os.path.exists(video_file) or not os.path.exists(csv_file):
+        raise ValueError("Video file or csv file does not exist.")
 
     rally_dir = os.path.join(match_dir, "frame", rally_id)
     if not os.path.exists(rally_dir):
@@ -500,9 +492,7 @@ def generate_data_frames(video_file):
         success, frame = cap.read()
         if success:
             frames.append(frame)
-            cv2.imwrite(
-                os.path.join(rally_dir, f"{len(frames) - 1}.{IMG_FORMAT}"), frame
-            )
+            cv2.imwrite(os.path.join(rally_dir, f"{len(frames) - 1}.{IMG_FORMAT}"), frame)
 
     # Calculate the median of all frames
     median = np.median(np.array(frames), 0)

@@ -1,15 +1,15 @@
-import os
-import cv2
 import math
-import parse
+import os
+
 import numpy as np
 import pandas as pd
+import parse
 from PIL import Image
-from tqdm import tqdm
 from torch.utils.data import Dataset
+from tqdm import tqdm
 
-from tracknetv3.utils.general import get_rally_dirs, get_match_median
-from tracknetv3.config.constants import HEIGHT, WIDTH, SIGMA, IMG_FORMAT
+from tracknetv3.config.constants import HEIGHT, IMG_FORMAT, SIGMA, WIDTH
+from tracknetv3.utils.general import get_match_median, get_rally_dirs
 
 data_dir = "data"
 
@@ -151,9 +151,7 @@ class Shuttlecock_Trajectory_Dataset(Dataset):
         # Get ground truth or predicted csv file
         if self.data_mode == "heatmap":
             if "test" in rally_dir:
-                csv_file = os.path.join(
-                    match_dir, "corrected_csv", f"{rally_id}_ball.csv"
-                )
+                csv_file = os.path.join(match_dir, "corrected_csv", f"{rally_id}_ball.csv")
             else:
                 csv_file = os.path.join(match_dir, "csv", f"{rally_id}_ball.csv")
             label_df = pd.read_csv(csv_file, encoding="utf8").sort_values(by="Frame")
@@ -191,13 +189,9 @@ class Shuttlecock_Trajectory_Dataset(Dataset):
 
     def _get_split(self, rally_dir):
         """Get the split of the given rally directory."""
-        if "test" in rally_dir or rally_dir.startswith(
-            os.path.join(self.root_dir, "test")
-        ):
+        if "test" in rally_dir or rally_dir.startswith(os.path.join(self.root_dir, "test")):
             return "test"
-        elif "val" in rally_dir or rally_dir.startswith(
-            os.path.join(self.root_dir, "val")
-        ):
+        elif "val" in rally_dir or rally_dir.startswith(os.path.join(self.root_dir, "val")):
             return "val"
         else:
             return "train"
@@ -219,16 +213,14 @@ class Shuttlecock_Trajectory_Dataset(Dataset):
         inpaint_mask = np.array([], dtype=np.float32).reshape(0, self.seq_len)
 
         # Generate input sequences from each rally
-        for rally_i, rally_dir in tqdm(self.rally_dict["i2p"].items()):
+        for rally_dir in tqdm(self.rally_dict["i2p"].values()):
             data_dict = self._gen_input_from_rally_dir(rally_dir)
             id = np.concatenate((id, data_dict["id"]), axis=0)
             coor = np.concatenate((coor, data_dict["coor"]), axis=0)
             coor_pred = np.concatenate((coor_pred, data_dict["coor_pred"]), axis=0)
             vis = np.concatenate((vis, data_dict["vis"]), axis=0)
             pred_vis = np.concatenate((pred_vis, data_dict["pred_vis"]), axis=0)
-            inpaint_mask = np.concatenate(
-                (inpaint_mask, data_dict["inpaint_mask"]), axis=0
-            )
+            inpaint_mask = np.concatenate((inpaint_mask, data_dict["inpaint_mask"]), axis=0)
 
         np.savez(
             file_name,
@@ -251,22 +243,15 @@ class Shuttlecock_Trajectory_Dataset(Dataset):
         if self.data_mode == "heatmap":
             # Read label csv file
             if "test" in rally_dir:
-                csv_file = os.path.join(
-                    match_dir, "corrected_csv", f"{rally_id}_ball.csv"
-                )
+                csv_file = os.path.join(match_dir, "corrected_csv", f"{rally_id}_ball.csv")
             else:
                 csv_file = os.path.join(match_dir, "csv", f"{rally_id}_ball.csv")
 
             assert os.path.exists(csv_file), f"{csv_file} does not exist."
-            label_df = (
-                pd.read_csv(csv_file, encoding="utf8").sort_values(by="Frame").fillna(0)
-            )
+            label_df = pd.read_csv(csv_file, encoding="utf8").sort_values(by="Frame").fillna(0)
 
             f_file = np.array(
-                [
-                    os.path.join(rally_dir, f"{f_id}.{IMG_FORMAT}")
-                    for f_id in label_df["Frame"]
-                ]
+                [os.path.join(rally_dir, f"{f_id}.{IMG_FORMAT}") for f_id in label_df["Frame"]]
             )
             x, y, v = (
                 np.array(label_df["X"]),
@@ -304,31 +289,22 @@ class Shuttlecock_Trajectory_Dataset(Dataset):
                 # Append the input sequence
                 if len(tmp_frames) == self.seq_len:
                     assert len(tmp_frames) == len(tmp_coor) == len(tmp_vis), (
-                        f"Length of frames, coordinates and visibilities are not equal."
+                        "Length of frames, coordinates and visibilities are not equal."
                     )
                     id = np.concatenate((id, [tmp_idx]), axis=0)
                     frame_file = np.concatenate((frame_file, [tmp_frames]), axis=0)
                     coor = np.concatenate((coor, [tmp_coor]), axis=0)
                     vis = np.concatenate((vis, [tmp_vis]), axis=0)
 
-            return dict(id=id, frame_file=frame_file, coor=coor, vis=vis)
+            return {"id": id, "frame_file": frame_file, "coor": coor, "vis": vis}
         else:
             # Read the predicted csv file
-            pred_csv_file = os.path.join(
-                match_dir, "predicted_csv", f"{rally_id}_ball.csv"
-            )
+            pred_csv_file = os.path.join(match_dir, "predicted_csv", f"{rally_id}_ball.csv")
             assert os.path.exists(pred_csv_file), f"{pred_csv_file} does not exist."
-            pred_df = (
-                pd.read_csv(pred_csv_file, encoding="utf8")
-                .sort_values(by="Frame")
-                .fillna(0)
-            )
+            pred_df = pd.read_csv(pred_csv_file, encoding="utf8").sort_values(by="Frame").fillna(0)
 
             f_file = np.array(
-                [
-                    os.path.join(rally_dir, f"{f_id}.{IMG_FORMAT}")
-                    for f_id in pred_df["Frame"]
-                ]
+                [os.path.join(rally_dir, f"{f_id}.{IMG_FORMAT}") for f_id in pred_df["Frame"]]
             )
             x, y, v = (
                 np.array(pred_df["X_GT"]),
@@ -391,7 +367,7 @@ class Shuttlecock_Trajectory_Dataset(Dataset):
                         == len(tmp_vis_pred)
                         == len(tmp_inpaint)
                     ), (
-                        f"Length of frames, coordinates, predicted coordinates,\
+                        "Length of frames, coordinates, predicted coordinates,\
                             visibilities, predicted visibilities and inpaint masks are not equal."
                     )
                     id = np.concatenate((id, [tmp_idx]), axis=0)
@@ -401,14 +377,14 @@ class Shuttlecock_Trajectory_Dataset(Dataset):
                     pred_vis = np.concatenate((pred_vis, [tmp_vis_pred]), axis=0)
                     inpaint_mask = np.concatenate((inpaint_mask, [tmp_inpaint]), axis=0)
 
-            return dict(
-                id=id,
-                coor=coor,
-                coor_pred=coor_pred,
-                vis=vis,
-                pred_vis=pred_vis,
-                inpaint_mask=inpaint_mask,
-            )
+            return {
+                "id": id,
+                "coor": coor,
+                "coor_pred": coor_pred,
+                "vis": vis,
+                "pred_vis": pred_vis,
+                "inpaint_mask": inpaint_mask,
+            }
 
     def _gen_input_from_frame_arr(self):
         """Generate input sequences from a frame array."""
@@ -436,7 +412,7 @@ class Shuttlecock_Trajectory_Dataset(Dataset):
                 # Append the input sequence
                 id = np.concatenate((id, [tmp_idx]), axis=0)
 
-        return dict(id=id), dict(img_scaler=(w_scaler, h_scaler), img_shape=(w, h))
+        return {"id": id}, {"img_scaler": (w_scaler, h_scaler), "img_shape": (w, h)}
 
     def _gen_input_from_pred_dict(self):
         """Generate input sequences from a prediction dictionary."""
@@ -451,7 +427,7 @@ class Shuttlecock_Trajectory_Dataset(Dataset):
         )
         inpaint = self.pred_dict["Inpaint_Mask"]
         assert len(x_pred) == len(y_pred) == len(vis_pred) == len(inpaint), (
-            f"Length of x_pred, y_pred, vis_pred and inpaint are not equal."
+            "Length of x_pred, y_pred, vis_pred and inpaint are not equal."
         )
 
         # Sliding on the frame sequence
@@ -478,18 +454,16 @@ class Shuttlecock_Trajectory_Dataset(Dataset):
 
             if len(tmp_idx) == self.seq_len:
                 assert len(tmp_coor_pred) == len(tmp_inpaint), (
-                    f"Length of predicted coordinates and inpaint masks are not equal."
+                    "Length of predicted coordinates and inpaint masks are not equal."
                 )
                 id = np.concatenate((id, [tmp_idx]), axis=0)
                 coor_pred = np.concatenate((coor_pred, [tmp_coor_pred]), axis=0)
                 pred_vis = np.concatenate((pred_vis, [tmp_vis_pred]), axis=0)
                 inpaint_mask = np.concatenate((inpaint_mask, [tmp_inpaint]), axis=0)
 
-        return dict(
-            id=id, coor_pred=coor_pred, pred_vis=pred_vis, inpaint_mask=inpaint_mask
-        ), dict(
-            img_scaler=self.pred_dict["Img_scaler"],
-            img_shape=self.pred_dict["Img_shape"],
+        return (
+            {"id": id, "coor_pred": coor_pred, "pred_vis": pred_vis, "inpaint_mask": inpaint_mask},
+            {"img_scaler": self.pred_dict["Img_scaler"], "img_shape": self.pred_dict["Img_shape"]},
         )
 
     def _get_heatmap(self, cx, cy):
@@ -533,9 +507,7 @@ class Shuttlecock_Trajectory_Dataset(Dataset):
             for i in range(self.seq_len):
                 img = Image.fromarray(imgs[i])
                 if self.bg_mode == "subtract":
-                    img = Image.fromarray(
-                        np.sum(np.absolute(img - median_img), 2).astype("uint8")
-                    )
+                    img = Image.fromarray(np.sum(np.absolute(img - median_img), 2).astype("uint8"))
                     img = np.array(img.resize(size=(self.WIDTH, self.HEIGHT)))
                     img = img.reshape(1, self.HEIGHT, self.WIDTH)
                 elif self.bg_mode == "subtract_concat":
@@ -583,9 +555,7 @@ class Shuttlecock_Trajectory_Dataset(Dataset):
                 w_scaler, h_scaler = self.img_config["img_scaler"][data_idx[0][0]]
 
                 if self.bg_mode:
-                    file_format_str = os.path.join(
-                        "{}", "frame", "{}", "{}." + IMG_FORMAT
-                    )
+                    file_format_str = os.path.join("{}", "frame", "{}", "{}." + IMG_FORMAT)
                     match_dir, rally_id, _ = parse.parse(file_format_str, frame_file[0])
                     median_file = (
                         os.path.join(match_dir, "median.npz")
@@ -645,27 +615,19 @@ class Shuttlecock_Trajectory_Dataset(Dataset):
                         cur_img = Image.fromarray(
                             np.sum(np.absolute(cur_img - median_img), 2).astype("uint8")
                         )
-                        cur_img = np.array(
-                            cur_img.resize(size=(self.WIDTH, self.HEIGHT))
-                        )
+                        cur_img = np.array(cur_img.resize(size=(self.WIDTH, self.HEIGHT)))
                         cur_img = cur_img.reshape(1, self.HEIGHT, self.WIDTH)
                     elif self.bg_mode == "subtract_concat":
                         diff_img = Image.fromarray(
                             np.sum(np.absolute(cur_img - median_img), 2).astype("uint8")
                         )
-                        diff_img = np.array(
-                            diff_img.resize(size=(self.WIDTH, self.HEIGHT))
-                        )
+                        diff_img = np.array(diff_img.resize(size=(self.WIDTH, self.HEIGHT)))
                         diff_img = diff_img.reshape(1, self.HEIGHT, self.WIDTH)
-                        cur_img = np.array(
-                            cur_img.resize(size=(self.WIDTH, self.HEIGHT))
-                        )
+                        cur_img = np.array(cur_img.resize(size=(self.WIDTH, self.HEIGHT)))
                         cur_img = np.moveaxis(cur_img, -1, 0)
                         cur_img = np.concatenate((cur_img, diff_img), axis=0)
                     else:
-                        cur_img = np.array(
-                            cur_img.resize(size=(self.WIDTH, self.HEIGHT))
-                        )
+                        cur_img = np.array(cur_img.resize(size=(self.WIDTH, self.HEIGHT)))
                         cur_img = np.moveaxis(cur_img, -1, 0)
 
                     inter_img = prev_img * lamb + cur_img * (1 - lamb)
@@ -679,8 +641,7 @@ class Shuttlecock_Trajectory_Dataset(Dataset):
                     elif (
                         prev_vis == 0
                         or math.sqrt(
-                            pow(prev_coor[0] - coor[i][0], 2)
-                            + pow(prev_coor[1] - coor[i][1], 2)
+                            pow(prev_coor[0] - coor[i][0], 2) + pow(prev_coor[1] - coor[i][1], 2)
                         )
                         < 10
                     ):
@@ -714,9 +675,7 @@ class Shuttlecock_Trajectory_Dataset(Dataset):
                         (frames, inter_img[None, :, :, :], cur_img[None, :, :, :]),
                         axis=0,
                     )
-                    heatmaps = np.concatenate(
-                        (heatmaps, inter_heatmap, cur_heatmap), axis=0
-                    )
+                    heatmaps = np.concatenate((heatmaps, inter_heatmap, cur_heatmap), axis=0)
 
                     prev_img, prev_heatmap, prev_coor, prev_vis = (
                         cur_img,
@@ -735,9 +694,7 @@ class Shuttlecock_Trajectory_Dataset(Dataset):
 
                 if self.bg_mode == "concat":
                     median_img = Image.fromarray(median_img.astype("uint8"))
-                    median_img = np.array(
-                        median_img.resize(size=(self.WIDTH, self.HEIGHT))
-                    )
+                    median_img = np.array(median_img.resize(size=(self.WIDTH, self.HEIGHT)))
                     median_img = np.moveaxis(median_img, -1, 0)
                     frames = np.concatenate(
                         (median_img.reshape(1, 3, self.HEIGHT, self.WIDTH), frames),
@@ -763,9 +720,7 @@ class Shuttlecock_Trajectory_Dataset(Dataset):
 
                 # Read median image
                 if self.bg_mode:
-                    file_format_str = os.path.join(
-                        "{}", "frame", "{}", "{}." + IMG_FORMAT
-                    )
+                    file_format_str = os.path.join("{}", "frame", "{}", "{}." + IMG_FORMAT)
                     match_dir, rally_id, _ = parse.parse(file_format_str, frame_file[0])
                     median_file = (
                         os.path.join(match_dir, "median.npz")
@@ -791,9 +746,7 @@ class Shuttlecock_Trajectory_Dataset(Dataset):
                         diff_img = Image.fromarray(
                             np.sum(np.absolute(img - median_img), 2).astype("uint8")
                         )
-                        diff_img = np.array(
-                            diff_img.resize(size=(self.WIDTH, self.HEIGHT))
-                        )
+                        diff_img = np.array(diff_img.resize(size=(self.WIDTH, self.HEIGHT)))
                         diff_img = diff_img.reshape(1, self.HEIGHT, self.WIDTH)
                         img = np.array(img.resize(size=(self.WIDTH, self.HEIGHT)))
                         img = np.moveaxis(img, -1, 0)
@@ -810,9 +763,7 @@ class Shuttlecock_Trajectory_Dataset(Dataset):
 
                 if self.bg_mode == "concat":
                     median_img = Image.fromarray(median_img.astype("uint8"))
-                    median_img = np.array(
-                        median_img.resize(size=(self.WIDTH, self.HEIGHT))
-                    )
+                    median_img = np.array(median_img.resize(size=(self.WIDTH, self.HEIGHT)))
                     median_img = np.moveaxis(median_img, -1, 0)
                     frames = np.concatenate((median_img, frames), axis=0)
 

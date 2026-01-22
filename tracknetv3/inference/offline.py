@@ -1,28 +1,28 @@
 from __future__ import annotations
+
 import os
 from dataclasses import dataclass
-from typing import Optional, Tuple, Dict, Any, Literal
+from typing import Any, Literal
 
-import numpy as np
-from tqdm import tqdm
-import torch
 import cv2
+import numpy as np
+import torch
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
-from tracknetv3.config.constants import HEIGHT, WIDTH, COOR_TH
+# generate_inpaint_mask is implemented in scripts/test.py (utility function).
+# Import here to avoid undefined name during linting.
+from scripts.test import generate_inpaint_mask
+from tracknetv3.config.constants import COOR_TH, HEIGHT, WIDTH
 from tracknetv3.datasets import Shuttlecock_Trajectory_Dataset, Video_IterableDataset
+from tracknetv3.evaluation.ensemble import get_ensemble_weight
 from tracknetv3.models import get_model
 from tracknetv3.utils.general import (
     generate_frames,
     write_pred_csv,
-    write_pred_video,
-    to_img_format,
-    to_img,
 )
-from tracknetv3.evaluation.ensemble import get_ensemble_weight
-from tracknetv3.evaluation.predict import predict_location
-from .helpers import _predict_from_network_outputs_fast
 
+from .helpers import _predict_from_network_outputs_fast
 
 EvalMode = Literal["nonoverlap", "average", "weight"]
 
@@ -35,7 +35,7 @@ class TrackNetConfig:
     eval_mode: EvalMode = "weight"
     large_video: bool = False
     max_sample_num: int = 1800
-    video_range: Optional[Tuple[int, int]] = None
+    video_range: tuple[int, int] | None = None
     num_workers_cap: int = 16
 
 
@@ -50,19 +50,15 @@ class TrackNetInfer:
         infer.save_video("tennis.mp4", pred_dict, "out.mp4", traj_len=8)
     """
 
-    def __init__(self, cfg: TrackNetConfig, device: Optional[str] = None):
+    def __init__(self, cfg: TrackNetConfig, device: str | None = None):
         self.cfg = cfg
-        self.device = torch.device(
-            device or ("cuda" if torch.cuda.is_available() else "cpu")
-        )
+        self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
 
         tracknet_ckpt = torch.load(cfg.tracknet_ckpt, map_location="cpu")
         self.tracknet_seq_len = int(tracknet_ckpt["param_dict"]["seq_len"])
         self.bg_mode = tracknet_ckpt["param_dict"]["bg_mode"]
 
-        self.tracknet = get_model("TrackNet", self.tracknet_seq_len, self.bg_mode).to(
-            self.device
-        )
+        self.tracknet = get_model("TrackNet", self.tracknet_seq_len, self.bg_mode).to(self.device)
         self.tracknet.load_state_dict(tracknet_ckpt["model"])
         self.tracknet.eval()
         self._median_cache = {}
@@ -76,10 +72,10 @@ class TrackNetInfer:
             self.inpaintnet.load_state_dict(inpaintnet_ckpt["model"])
             self.inpaintnet.eval()
 
-    def __call__(self, video_file: str) -> Dict[str, Any]:
+    def __call__(self, video_file: str) -> dict[str, Any]:
         return self.predict_video(video_file)
 
-    def predict_video(self, video_file: str) -> Dict[str, Any]:
+    def predict_video(self, video_file: str) -> dict[str, Any]:
         """
         Returns pred_dict:
           {'Frame':[], 'X':[], 'Y':[], 'Visibility':[],
@@ -96,14 +92,14 @@ class TrackNetInfer:
 
         return tracknet_pred_dict
 
-    def save_csv(self, pred_dict: Dict[str, Any], save_file: str) -> None:
+    def save_csv(self, pred_dict: dict[str, Any], save_file: str) -> None:
         os.makedirs(os.path.dirname(save_file) or ".", exist_ok=True)
         write_pred_csv(pred_dict, save_file=save_file)
 
     def save_video(
         self,
         video_file: str,
-        pred_dict: Dict[str, Any],
+        pred_dict: dict[str, Any],
         save_file: str,
         traj_len: int = 8,
         fps_fallback: float = 30.0,
@@ -111,9 +107,7 @@ class TrackNetInfer:
         if not save_file:
             raise ValueError("save_file is empty")
 
-        if save_file.endswith("/") or (
-            os.path.exists(save_file) and os.path.isdir(save_file)
-        ):
+        if save_file.endswith("/") or (os.path.exists(save_file) and os.path.isdir(save_file)):
             os.makedirs(save_file, exist_ok=True)
             base = os.path.splitext(os.path.basename(video_file))[0]
             save_file = os.path.join(save_file, f"{base}_tracknet.mp4")
@@ -131,13 +125,9 @@ class TrackNetInfer:
             print(f"[WARN] input fps={fps}, fallback to {fps_fallback}")
             fps = fps_fallback
 
-        self._write_pred_video_safe(
-            video_file, pred_dict, save_file, traj_len=traj_len, fps=fps
-        )
+        self._write_pred_video_safe(video_file, pred_dict, save_file, traj_len=traj_len, fps=fps)
 
-    def _get_video_scaler(
-        self, video_file: str
-    ) -> Tuple[Tuple[float, float], Tuple[int, int]]:
+    def _get_video_scaler(self, video_file: str) -> tuple[tuple[float, float], tuple[int, int]]:
         cap = cv2.VideoCapture(video_file)
         w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -149,7 +139,7 @@ class TrackNetInfer:
     def _write_pred_video_safe(
         self,
         video_file: str,
-        pred_dict: Dict[str, Any],
+        pred_dict: dict[str, Any],
         save_file: str,
         traj_len: int,
         fps: float,
@@ -164,9 +154,7 @@ class TrackNetInfer:
             fps = 30.0
 
         codecs = (
-            ["mp4v", "avc1", "H264"]
-            if save_file.lower().endswith(".mp4")
-            else ["XVID", "MJPG"]
+            ["mp4v", "avc1", "H264"] if save_file.lower().endswith(".mp4") else ["XVID", "MJPG"]
         )
         writer = None
         for c in codecs:
@@ -183,8 +171,9 @@ class TrackNetInfer:
         xs = pred_dict["X"]
         ys = pred_dict["Y"]
         vis = pred_dict["Visibility"]
+        # Use strict zip to ensure all sequences are same length (ruff B905)
         lookup = {
-            int(f): (int(x), int(y), int(v)) for f, x, y, v in zip(frames, xs, ys, vis)
+            int(f): (int(x), int(y), int(v)) for f, x, y, v in zip(frames, xs, ys, vis, strict=True)
         }
 
         f_idx = 0
@@ -257,9 +246,7 @@ class TrackNetInfer:
             if self.bg_mode and (median is None) and (cache_key is not None):
                 self._median_cache[cache_key] = dataset.median
 
-            loader = DataLoader(
-                dataset, batch_size=cfg.batch_size, shuffle=False, drop_last=False
-            )
+            loader = DataLoader(dataset, batch_size=cfg.batch_size, shuffle=False, drop_last=False)
             video_len = dataset.video_len
             return loader, video_len
 
@@ -285,9 +272,9 @@ class TrackNetInfer:
     def _run_tracknet(
         self,
         video_file: str,
-        img_scaler: Tuple[float, float],
-        img_shape: Tuple[int, int],
-    ) -> Dict[str, Any]:
+        img_scaler: tuple[float, float],
+        img_shape: tuple[int, int],
+    ) -> dict[str, Any]:
         cfg = self.cfg
         seq_len = self.tracknet_seq_len
 
@@ -320,9 +307,7 @@ class TrackNetInfer:
         buffer_size = seq_len - 1
         batch_i = torch.arange(seq_len)
         frame_i = torch.arange(seq_len - 1, -1, -1)
-        y_pred_buffer = torch.zeros(
-            (buffer_size, seq_len, HEIGHT, WIDTH), dtype=torch.float32
-        )
+        y_pred_buffer = torch.zeros((buffer_size, seq_len, HEIGHT, WIDTH), dtype=torch.float32)
         weight = get_ensemble_weight(seq_len, cfg.eval_mode)
 
         for i, x in tqdm(loader):
@@ -339,13 +324,9 @@ class TrackNetInfer:
 
             for b in range(b_size):
                 if sample_count < buffer_size:
-                    y_ens = y_pred_buffer[batch_i + b, frame_i].sum(0) / (
-                        sample_count + 1
-                    )
+                    y_ens = y_pred_buffer[batch_i + b, frame_i].sum(0) / (sample_count + 1)
                 else:
-                    y_ens = (
-                        y_pred_buffer[batch_i + b, frame_i] * weight[:, None, None]
-                    ).sum(0)
+                    y_ens = (y_pred_buffer[batch_i + b, frame_i] * weight[:, None, None]).sum(0)
 
                 ensemble_i = torch.cat((ensemble_i, i[b][0].reshape(1, 1, 2)), dim=0)
                 ensemble_y_pred = torch.cat(
@@ -360,12 +341,8 @@ class TrackNetInfer:
                     y_pred_buffer = torch.cat((y_pred_buffer, y_zero_pad), dim=0)
 
                     for f in range(1, seq_len):
-                        y_tail = y_pred_buffer[batch_i + b + f, frame_i].sum(0) / (
-                            seq_len - f
-                        )
-                        ensemble_i = torch.cat(
-                            (ensemble_i, i[-1][f].reshape(1, 1, 2)), dim=0
-                        )
+                        y_tail = y_pred_buffer[batch_i + b + f, frame_i].sum(0) / (seq_len - f)
+                        ensemble_i = torch.cat((ensemble_i, i[-1][f].reshape(1, 1, 2)), dim=0)
                         ensemble_y_pred = torch.cat(
                             (ensemble_y_pred, y_tail.reshape(1, 1, HEIGHT, WIDTH)),
                             dim=0,
@@ -382,10 +359,11 @@ class TrackNetInfer:
         return tracknet_pred_dict
 
     def _run_inpaintnet(
-        self, tracknet_pred_dict: Dict[str, Any], img_scaler: Tuple[float, float]
-    ) -> Dict[str, Any]:
+        self, tracknet_pred_dict: dict[str, Any], img_scaler: tuple[float, float]
+    ) -> dict[str, Any]:
         cfg = self.cfg
-        assert self.inpaintnet is not None and self.inpaintnet_seq_len is not None
+        assert self.inpaintnet is not None
+        assert self.inpaintnet_seq_len is not None
 
         w, h = tracknet_pred_dict["Img_shape"]
         tracknet_pred_dict["Inpaint_Mask"] = generate_inpaint_mask(
@@ -426,13 +404,9 @@ class TrackNetInfer:
                         .detach()
                         .cpu()
                     )
-                    coor_inpaint = coor_inpaint * inpaint_mask + coor_pred * (
-                        1 - inpaint_mask
-                    )
+                    coor_inpaint = coor_inpaint * inpaint_mask + coor_pred * (1 - inpaint_mask)
 
-                th = (coor_inpaint[:, :, 0] < COOR_TH) & (
-                    coor_inpaint[:, :, 1] < COOR_TH
-                )
+                th = (coor_inpaint[:, :, 0] < COOR_TH) & (coor_inpaint[:, :, 1] < COOR_TH)
                 coor_inpaint[th] = 0.0
 
                 tmp_pred = _predict_from_network_outputs_fast(
@@ -463,9 +437,7 @@ class TrackNetInfer:
         buffer_size = seq_len - 1
         batch_i = torch.arange(seq_len)
         frame_i = torch.arange(seq_len - 1, -1, -1)
-        coor_inpaint_buffer = torch.zeros(
-            (buffer_size, seq_len, 2), dtype=torch.float32
-        )
+        coor_inpaint_buffer = torch.zeros((buffer_size, seq_len, 2), dtype=torch.float32)
 
         for i, coor_pred, inpaint_mask in tqdm(loader):
             coor_pred = coor_pred.float()
@@ -481,9 +453,7 @@ class TrackNetInfer:
                     .detach()
                     .cpu()
                 )
-                coor_inpaint = coor_inpaint * inpaint_mask + coor_pred * (
-                    1 - inpaint_mask
-                )
+                coor_inpaint = coor_inpaint * inpaint_mask + coor_pred * (1 - inpaint_mask)
 
             th = (coor_inpaint[:, :, 0] < COOR_TH) & (coor_inpaint[:, :, 1] < COOR_TH)
             coor_inpaint[th] = 0.0
@@ -494,40 +464,26 @@ class TrackNetInfer:
 
             for b in range(b_size):
                 if sample_count < buffer_size:
-                    c_ens = coor_inpaint_buffer[batch_i + b, frame_i].sum(0) / (
-                        sample_count + 1
-                    )
+                    c_ens = coor_inpaint_buffer[batch_i + b, frame_i].sum(0) / (sample_count + 1)
                 else:
-                    c_ens = (
-                        coor_inpaint_buffer[batch_i + b, frame_i] * weight[:, None]
-                    ).sum(0)
+                    c_ens = (coor_inpaint_buffer[batch_i + b, frame_i] * weight[:, None]).sum(0)
 
                 ensemble_i = torch.cat((ensemble_i, i[b][0].view(1, 1, 2)), dim=0)
                 ensemble_coor = torch.cat((ensemble_coor, c_ens.view(1, 1, 2)), dim=0)
                 sample_count += 1
 
                 if sample_count == num_sample:
-                    coor_zero_pad = torch.zeros(
-                        (buffer_size, seq_len, 2), dtype=torch.float32
-                    )
-                    coor_inpaint_buffer = torch.cat(
-                        (coor_inpaint_buffer, coor_zero_pad), dim=0
-                    )
+                    coor_zero_pad = torch.zeros((buffer_size, seq_len, 2), dtype=torch.float32)
+                    coor_inpaint_buffer = torch.cat((coor_inpaint_buffer, coor_zero_pad), dim=0)
 
                     for f in range(1, seq_len):
-                        c_tail = coor_inpaint_buffer[batch_i + b + f, frame_i].sum(
-                            0
-                        ) / (seq_len - f)
-                        ensemble_i = torch.cat(
-                            (ensemble_i, i[-1][f].view(1, 1, 2)), dim=0
+                        c_tail = coor_inpaint_buffer[batch_i + b + f, frame_i].sum(0) / (
+                            seq_len - f
                         )
-                        ensemble_coor = torch.cat(
-                            (ensemble_coor, c_tail.view(1, 1, 2)), dim=0
-                        )
+                        ensemble_i = torch.cat((ensemble_i, i[-1][f].view(1, 1, 2)), dim=0)
+                        ensemble_coor = torch.cat((ensemble_coor, c_tail.view(1, 1, 2)), dim=0)
 
-            th2 = (ensemble_coor[:, :, 0] < COOR_TH) & (
-                ensemble_coor[:, :, 1] < COOR_TH
-            )
+            th2 = (ensemble_coor[:, :, 0] < COOR_TH) & (ensemble_coor[:, :, 1] < COOR_TH)
             ensemble_coor[th2] = 0.0
 
             tmp_pred = _predict_from_network_outputs_fast(

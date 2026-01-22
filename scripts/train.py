@@ -1,23 +1,23 @@
+import argparse
 import os
 import time
-import argparse
-import numpy as np
-from tqdm import tqdm
 
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-
-from tracknetv3.datasets import Shuttlecock_Trajectory_Dataset
-from tracknetv3.evaluation.metrics import eval_tracknet, eval_inpaintnet
-from tracknetv3.utils.general import ResumeArgumentParser, get_model, to_img_format
-from tracknetv3.utils.metric import WBCELoss
+from tqdm import tqdm
 from tracknetv3.utils.visualize import (
     plot_heatmap_pred_sample,
     plot_traj_pred_sample,
     write_to_tb,
 )
+
+from tracknetv3.datasets import Shuttlecock_Trajectory_Dataset
+from tracknetv3.evaluation.metrics import eval_inpaintnet, eval_tracknet
+from tracknetv3.utils.general import ResumeArgumentParser, get_model, to_img_format
+from tracknetv3.utils.metric import WBCELoss
 
 
 def mixup(x, y, alpha=0.5):
@@ -102,7 +102,7 @@ def train_tracknet(model, optimizer, data_loader, param_dict):
         optimizer.step()
 
         if param_dict["verbose"] and (step + 1) % display_step == 0:
-            data_prob.set_description(f"Training")
+            data_prob.set_description("Training")
             data_prob.set_postfix(loss=loss.item())
 
         # Visualize current prediction
@@ -190,7 +190,7 @@ def train_inpaintnet(model, optimizer, data_loader, param_dict):
         optimizer.step()
 
         if param_dict["verbose"] and (step + 1) % display_step == 0:
-            data_prob.set_description(f"Training")
+            data_prob.set_description("Training")
             data_prob.set_postfix(loss=loss.item())
 
         # Visualize current prediction
@@ -219,13 +219,9 @@ if __name__ == "__main__":
         choices=["TrackNet", "InpaintNet"],
         help="model type",
     )
-    parser.add_argument(
-        "--seq_len", type=int, default=8, help="sequence length of input"
-    )
+    parser.add_argument("--seq_len", type=int, default=8, help="sequence length of input")
     parser.add_argument("--epochs", type=int, default=3, help="number of epochs")
-    parser.add_argument(
-        "--batch_size", type=int, default=10, help="batch size of training"
-    )
+    parser.add_argument("--batch_size", type=int, default=10, help="batch size of training")
     parser.add_argument(
         "--optim",
         type=str,
@@ -233,9 +229,7 @@ if __name__ == "__main__":
         choices=["Adam", "SGD", "Adadelta"],
         help="optimizer",
     )
-    parser.add_argument(
-        "--learning_rate", type=float, default=0.001, help="initial learning rate"
-    )
+    parser.add_argument("--learning_rate", type=float, default=0.001, help="initial learning rate")
     parser.add_argument(
         "--lr_scheduler",
         type=str,
@@ -311,9 +305,9 @@ if __name__ == "__main__":
     # Load checkpoint
     if args.resume_training:
         print(f"Load checkpoint from {args.model_name}_cur.pt...")
-        assert os.path.exists(
-            os.path.join(args.save_dir, f"{args.model_name}_cur.pt")
-        ), f"No checkpoint found in {args.save_dir}"
+        assert os.path.exists(os.path.join(args.save_dir, f"{args.model_name}_cur.pt")), (
+            f"No checkpoint found in {args.save_dir}"
+        )
         ckpt = torch.load(os.path.join(args.save_dir, f"{args.model_name}_cur.pt"))
         param_dict = ckpt["param_dict"]
         ckpt["param_dict"]["resume_training"] = args.resume_training
@@ -322,7 +316,7 @@ if __name__ == "__main__":
         args = ResumeArgumentParser(ckpt["param_dict"])
 
     print(f"Parameters: {param_dict}")
-    print(f"Load dataset...")
+    print("Load dataset...")
     data_mode = "heatmap" if args.model_name == "TrackNet" else "coordinate"
     train_dataset = Shuttlecock_Trajectory_Dataset(
         split="train",
@@ -371,9 +365,7 @@ if __name__ == "__main__":
     if args.optim == "Adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     elif args.optim == "SGD":
-        optimizer = torch.optim.SGD(
-            model.parameters(), lr=args.learning_rate, momentum=0.9
-        )
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9)
     elif args.optim == "Adadelta":
         optimizer = torch.optim.Adadelta(model.parameters(), lr=args.learning_rate)
     else:
@@ -400,7 +392,7 @@ if __name__ == "__main__":
         max_val_acc = 0.0
         start_epoch = 0
 
-    print(f"Start training...")
+    print("Start training...")
     train_start_time = time.time()
     for epoch in range(start_epoch, args.epochs):
         print(f"Epoch [{epoch + 1} / {args.epochs}]")
@@ -414,34 +406,32 @@ if __name__ == "__main__":
 
         # Pick best model
         cur_val_acc = (
-            val_res["accuracy"]
-            if args.model_name == "TrackNet"
-            else val_res["inpaint"]["accuracy"]
+            val_res["accuracy"] if args.model_name == "TrackNet" else val_res["inpaint"]["accuracy"]
         )
         if cur_val_acc >= max_val_acc:
             max_val_acc = cur_val_acc
             torch.save(
-                dict(
-                    epoch=epoch,
-                    max_val_acc=max_val_acc,
-                    model=model.state_dict(),
-                    optimizer=optimizer.state_dict(),
-                    scheduler=scheduler.state_dict() if scheduler is not None else None,
-                    param_dict=param_dict,
-                ),
+                {
+                    "epoch": epoch,
+                    "max_val_acc": max_val_acc,
+                    "model": model.state_dict(),
+                    "optimizer": optimizer.state_dict(),
+                    "scheduler": scheduler.state_dict() if scheduler is not None else None,
+                    "param_dict": param_dict,
+                },
                 os.path.join(args.save_dir, f"{args.model_name}_best.pt"),
             )
 
         # Save current model
         torch.save(
-            dict(
-                epoch=epoch,
-                max_val_acc=max_val_acc,
-                model=model.state_dict(),
-                optimizer=optimizer.state_dict(),
-                scheduler=scheduler.state_dict() if scheduler is not None else None,
-                param_dict=param_dict,
-            ),
+            {
+                "epoch": epoch,
+                "max_val_acc": max_val_acc,
+                "model": model.state_dict(),
+                "optimizer": optimizer.state_dict(),
+                "scheduler": scheduler.state_dict() if scheduler is not None else None,
+                "param_dict": param_dict,
+            },
             os.path.join(args.save_dir, f"{args.model_name}_cur.pt"),
         )
 

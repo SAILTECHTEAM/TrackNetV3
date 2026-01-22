@@ -1,12 +1,12 @@
 from __future__ import annotations
-import time
-from typing import Optional, Tuple, Dict, Any
-from collections import deque
-from typing import List
 
+import time
+from collections import deque
+from typing import Any
+
+import cv2
 import numpy as np
 import torch
-import cv2
 
 from tracknetv3.config.constants import HEIGHT, WIDTH
 from tracknetv3.evaluation.ensemble import get_ensemble_weight
@@ -26,7 +26,7 @@ class TrackNetModule:
         bg_mode: str,
         device: torch.device,
         eval_mode: str = "weight",
-        median: Optional[np.ndarray] = None,
+        median: np.ndarray | None = None,
         median_warmup: int = 0,
     ):
         self.tracknet = tracknet
@@ -38,19 +38,19 @@ class TrackNetModule:
         self.frames = deque(maxlen=self.seq_len)
         self.frame_ids = deque(maxlen=self.seq_len)
 
-        self.img_scaler: Optional[Tuple[float, float]] = None
-        self.img_shape: Optional[Tuple[int, int]] = None
+        self.img_scaler: tuple[float, float] | None = None
+        self.img_shape: tuple[int, int] | None = None
 
         self._ens_w = np.asarray(
             get_ensemble_weight(self.seq_len, self.eval_mode), dtype=np.float32
         )
 
-        self._acc_sum: Dict[int, np.ndarray] = {}
-        self._acc_w: Dict[int, float] = {}
+        self._acc_sum: dict[int, np.ndarray] = {}
+        self._acc_w: dict[int, float] = {}
 
         self._median = median
         self._median_warmup = int(median_warmup)
-        self._warmup_rgb: List[np.ndarray] = []
+        self._warmup_rgb: list[np.ndarray] = []
         self._proc = deque(maxlen=self.seq_len)
         self._fidq = deque(maxlen=self.seq_len)
 
@@ -103,7 +103,7 @@ class TrackNetModule:
                 self._median = med
             self._warmup_rgb.clear()
 
-    def _process_window(self, frames_bgr: List[np.ndarray]) -> Optional[np.ndarray]:
+    def _process_window(self, frames_bgr: list[np.ndarray]) -> np.ndarray | None:
         imgs = np.asarray(frames_bgr, dtype=np.uint8)[..., ::-1]
 
         if self.bg_mode and self._median is None:
@@ -167,7 +167,7 @@ class TrackNetModule:
         out *= 1.0 / 255.0
         return out
 
-    def _heatmap_to_xy(self, heat: np.ndarray) -> Tuple[int, int, int]:
+    def _heatmap_to_xy(self, heat: np.ndarray) -> tuple[int, int, int]:
         if heat is None or float(heat.max()) <= 0.0:
             return 0, 0, 0
         Hm, Wm = heat.shape
@@ -180,7 +180,7 @@ class TrackNetModule:
         v = 0 if (x == 0 and y == 0) else 1
         return x, y, v
 
-    def _process_one(self, frame_bgr: np.ndarray) -> Optional[np.ndarray]:
+    def _process_one(self, frame_bgr: np.ndarray) -> np.ndarray | None:
         rgb = frame_bgr[..., ::-1]
 
         if self.bg_mode and self._median is None:
@@ -189,33 +189,23 @@ class TrackNetModule:
                 return None
 
         if self.bg_mode == "subtract":
-            diff = np.abs(rgb.astype(np.int16) - self._median.astype(np.int16)).sum(
-                axis=2
-            )
+            diff = np.abs(rgb.astype(np.int16) - self._median.astype(np.int16)).sum(axis=2)
             diff = np.clip(diff, 0, 255).astype(np.uint8)
             diff_r = (
-                cv2.resize(diff, (WIDTH, HEIGHT), interpolation=cv2.INTER_AREA).astype(
-                    np.float32
-                )
+                cv2.resize(diff, (WIDTH, HEIGHT), interpolation=cv2.INTER_AREA).astype(np.float32)
                 / 255.0
             )
             return diff_r[None, ...]
 
         elif self.bg_mode == "subtract_concat":
-            diff = np.abs(rgb.astype(np.int16) - self._median.astype(np.int16)).sum(
-                axis=2
-            )
+            diff = np.abs(rgb.astype(np.int16) - self._median.astype(np.int16)).sum(axis=2)
             diff = np.clip(diff, 0, 255).astype(np.uint8)
             img_r = (
-                cv2.resize(rgb, (WIDTH, HEIGHT), interpolation=cv2.INTER_AREA).astype(
-                    np.float32
-                )
+                cv2.resize(rgb, (WIDTH, HEIGHT), interpolation=cv2.INTER_AREA).astype(np.float32)
                 / 255.0
             )
             diff_r = (
-                cv2.resize(diff, (WIDTH, HEIGHT), interpolation=cv2.INTER_AREA).astype(
-                    np.float32
-                )
+                cv2.resize(diff, (WIDTH, HEIGHT), interpolation=cv2.INTER_AREA).astype(np.float32)
                 / 255.0
             )
             img_chw = np.moveaxis(img_r, -1, 0)
@@ -223,16 +213,12 @@ class TrackNetModule:
 
         else:
             img_r = (
-                cv2.resize(rgb, (WIDTH, HEIGHT), interpolation=cv2.INTER_AREA).astype(
-                    np.float32
-                )
+                cv2.resize(rgb, (WIDTH, HEIGHT), interpolation=cv2.INTER_AREA).astype(np.float32)
                 / 255.0
             )
             return np.moveaxis(img_r, -1, 0)
 
-    def push(
-        self, frame_bgr: np.ndarray, frame_id: Optional[int] = None
-    ) -> Optional[Dict[str, Any]]:
+    def push(self, frame_bgr: np.ndarray, frame_id: int | None = None) -> dict[str, Any] | None:
         self.stats["push_calls"] += 1
 
         self._ensure_scaler(frame_bgr)
@@ -278,11 +264,7 @@ class TrackNetModule:
         ids = list(self._fidq)
 
         for j, fid in enumerate(ids):
-            w = (
-                float(self._ens_w[self.seq_len - 1 - j])
-                if self.eval_mode != "nonoverlap"
-                else 1.0
-            )
+            w = float(self._ens_w[self.seq_len - 1 - j]) if self.eval_mode != "nonoverlap" else 1.0
             if fid not in self._acc_sum:
                 self._acc_sum[fid] = (y[j] * w).astype(np.float32)
                 self._acc_w[fid] = w
@@ -308,7 +290,7 @@ class TrackNetModule:
         self.stats["t_post"] += time.perf_counter() - t2
         return out
 
-    def flush(self) -> List[Dict[str, Any]]:
+    def flush(self) -> list[dict[str, Any]]:
         outs = []
         for fid in sorted(self._acc_sum.keys()):
             heat = self._acc_sum[fid] / max(1e-6, self._acc_w[fid])
@@ -340,7 +322,7 @@ class InpaintModule:
         inpaintnet: torch.nn.Module,
         seq_len: int,
         device: torch.device,
-        img_scaler: Tuple[float, float],
+        img_scaler: tuple[float, float],
     ):
         self.inpaintnet = inpaintnet
         self.seq_len = int(seq_len)
@@ -358,7 +340,7 @@ class InpaintModule:
         self._mask.clear()
         self._frame_ids.clear()
 
-    def push(self, pred: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def push(self, pred: dict[str, Any]) -> dict[str, Any] | None:
         self.stats["push_calls"] += 1
 
         fid = int(pred["Frame"])
@@ -417,7 +399,7 @@ class InpaintModule:
 
         return {"Frame": out_fid, "X": px, "Y": py, "Visibility": v}
 
-    def flush(self) -> List[Dict[str, Any]]:
+    def flush(self) -> list[dict[str, Any]]:
         outs = []
         while self._frame_ids:
             fid = self._frame_ids.popleft()
@@ -430,7 +412,5 @@ class InpaintModule:
                 px = int(c[0] * WIDTH * sx)
                 py = int(c[1] * HEIGHT * sy)
                 v = 0 if (px == 0 and py == 0) else 1
-            outs.append(
-                {"Frame": int(fid), "X": int(px), "Y": int(py), "Visibility": int(v)}
-            )
+            outs.append({"Frame": int(fid), "X": int(px), "Y": int(py), "Visibility": int(v)})
         return outs

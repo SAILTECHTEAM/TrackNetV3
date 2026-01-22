@@ -1,14 +1,13 @@
-import os
 import argparse
+import os
+
 import torch
-import torch.nn as nn
-from tracknetv3.utils.general import get_model
+
 from tracknetv3.config.constants import HEIGHT, WIDTH
+from tracknetv3.utils.general import get_model
 
 
-def export_tracknet(
-    model, seq_len, bg_mode, output_path, dynamic_batch=False, opset_version=14
-):
+def export_tracknet(model, seq_len, bg_mode, output_path, dynamic_batch=False, opset_version=14):
     """
     Exports TrackNet model to ONNX format.
     """
@@ -32,9 +31,7 @@ def export_tracknet(
     if dynamic_batch:
         dynamic_axes = {"input": {0: "batch_size"}, "output": {0: "batch_size"}}
 
-    print(
-        f"Exporting TrackNet (seq_len={seq_len}, bg_mode='{bg_mode}') to {output_path}..."
-    )
+    print(f"Exporting TrackNet (seq_len={seq_len}, bg_mode='{bg_mode}') to {output_path}...")
     torch.onnx.export(
         model,
         dummy_input,
@@ -49,9 +46,7 @@ def export_tracknet(
     print("Export complete.")
 
 
-def export_inpaintnet(
-    model, seq_len, output_path, dynamic_batch=False, opset_version=14
-):
+def export_inpaintnet(model, seq_len, output_path, dynamic_batch=False, opset_version=14):
     """
     Exports InpaintNet model to ONNX format.
     """
@@ -90,12 +85,8 @@ def main():
     parser.add_argument(
         "--checkpoint", type=str, required=True, help="Path to PyTorch checkpoint (.pt)"
     )
-    parser.add_argument(
-        "--output_dir", type=str, default=".", help="Directory to save ONNX model"
-    )
-    parser.add_argument(
-        "--dynamic-batch", action="store_true", help="Enable dynamic batch size"
-    )
+    parser.add_argument("--output_dir", type=str, default=".", help="Directory to save ONNX model")
+    parser.add_argument("--dynamic-batch", action="store_true", help="Enable dynamic batch size")
     parser.add_argument("--opset", type=int, default=18, help="ONNX opset version")
 
     args = parser.parse_args()
@@ -124,9 +115,7 @@ def main():
     if "model" in checkpoint:
         model.load_state_dict(checkpoint["model"])
     else:
-        print(
-            "Warning: 'model' state_dict not found in checkpoint. Exporting architecture only."
-        )
+        print("Warning: 'model' state_dict not found in checkpoint. Exporting architecture only.")
 
     model.eval()
 
@@ -136,9 +125,7 @@ def main():
         mode_str = bg_mode if bg_mode else "rgb"
         filename = f"tracknet_seq{seq_len}_{mode_str}.onnx"
         output_path = os.path.join(args.output_dir, filename)
-        export_tracknet(
-            model, seq_len, bg_mode, output_path, args.dynamic_batch, args.opset
-        )
+        export_tracknet(model, seq_len, bg_mode, output_path, args.dynamic_batch, args.opset)
     elif model_name == "InpaintNet":
         filename = f"inpaintnet_seq{seq_len}.onnx"
         output_path = os.path.join(args.output_dir, filename)

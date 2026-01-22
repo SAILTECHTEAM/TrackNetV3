@@ -1,4 +1,5 @@
-import os
+from collections import deque
+
 import cv2
 import numpy as np
 from PIL import Image
@@ -72,7 +73,6 @@ class Video_IterableDataset(IterableDataset):
         start_f_id = 0
         end_f_id = 0  # next frame id to be read
         eof = False
-        yielded_padded_tail = False
 
         # Fill initial window
         while len(window) < seq_len:
@@ -109,9 +109,7 @@ class Video_IterableDataset(IterableDataset):
             if ids.size < seq_len:
                 # pad indices with last valid id
                 last_id = max(0, end_f_id - 1)
-                ids = np.concatenate(
-                    [ids, np.full((seq_len - ids.size,), last_id, dtype=np.int64)]
-                )
+                ids = np.concatenate([ids, np.full((seq_len - ids.size,), last_id, dtype=np.int64)])
 
             data_idx = np.stack([np.zeros(seq_len, dtype=np.int64), ids], axis=1)
 
@@ -244,18 +242,14 @@ class Video_IterableDataset(IterableDataset):
             if mode == "subtract":
                 # diff = sum(|img - median|) over channels -> uint8 gray
                 # use int16 to avoid underflow
-                diff = np.abs(img.astype(np.int16) - median.astype(np.int16)).sum(
-                    axis=2
-                )
+                diff = np.abs(img.astype(np.int16) - median.astype(np.int16)).sum(axis=2)
                 diff = np.clip(diff, 0, 255).astype(np.uint8)
 
                 diff_r = cv2.resize(diff, (W, H), interpolation=cv2.INTER_AREA)
                 out[write_offset + i, :, :] = diff_r.astype(np.float32)
 
             elif mode == "subtract_concat":
-                diff = np.abs(img.astype(np.int16) - median.astype(np.int16)).sum(
-                    axis=2
-                )
+                diff = np.abs(img.astype(np.int16) - median.astype(np.int16)).sum(axis=2)
                 diff = np.clip(diff, 0, 255).astype(np.uint8)
 
                 img_r = cv2.resize(img, (W, H), interpolation=cv2.INTER_AREA)  # RGB

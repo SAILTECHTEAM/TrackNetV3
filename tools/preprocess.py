@@ -1,16 +1,16 @@
 import os
-import parse
 import shutil
+
+import parse
+from tracknetv3.utils.visualize import plot_median_files
 
 from tracknetv3.datasets import data_dir
 from tracknetv3.utils.general import (
-    list_dirs,
     generate_data_frames,
-    get_num_frames,
     get_match_median,
+    get_num_frames,
+    list_dirs,
 )
-from tracknetv3.utils.visualize import plot_median_files
-
 
 # Replace csv to corrected csv in test set
 if os.path.exists("corrected_test_label"):
@@ -19,9 +19,7 @@ if os.path.exists("corrected_test_label"):
     for match_dir in match_dirs:
         file_format_str = os.path.join("{}", "test", "{}")
         _, match_dir = parse.parse(file_format_str, match_dir)
-        if not os.path.exists(
-            os.path.join(data_dir, "test", match_dir, "corrected_csv")
-        ):
+        if not os.path.exists(os.path.join(data_dir, "test", match_dir, "corrected_csv")):
             shutil.copytree(
                 os.path.join("corrected_test_label", match_dir, "corrected_csv"),
                 os.path.join(data_dir, "test", match_dir, "corrected_csv"),
@@ -46,9 +44,7 @@ for split in ["train", "test"]:
             _, video_name = parse.parse(file_format_str, video_file)
             rally_dir = os.path.join(match_dir, "frame", video_name)
             video_frame_count = get_num_frames(rally_dir)
-            print(
-                f"[{split} / match{match_id} / {video_name}]\tvideo frames: {video_frame_count}"
-            )
+            print(f"[{split} / match{match_id} / {video_name}]\tvideo frames: {video_frame_count}")
             match_frame_count += video_frame_count
         get_match_median(match_dir)
         print(f"[{split} / match{match_id}]:\ttotal frames: {match_frame_count}")

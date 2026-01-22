@@ -1,14 +1,15 @@
-import os
-import cv2
-import time
 import argparse
+import os
+import time
 from collections import deque
 
+import cv2
+
 from tracknetv3.inference import (
-    TrackNetInfer,
-    TrackNetConfig,
-    TrackNetModule,
     InpaintModule,
+    TrackNetConfig,
+    TrackNetInfer,
+    TrackNetModule,
 )
 
 
@@ -37,9 +38,7 @@ if __name__ == "__main__":
     # Arguments (ONLY here)
     # -------------------------------
     parser = argparse.ArgumentParser("TrackNet Live Demo")
-    parser.add_argument(
-        "--src", required=True, help="RTSP URL / video file / webcam index (0)"
-    )
+    parser.add_argument("--src", required=True, help="RTSP URL / video file / webcam index (0)")
     parser.add_argument("--out_dir", default="pred_result")
     parser.add_argument("--csv", default="tracknet_live.csv")
     parser.add_argument("--mp4", default="tracknet_live.mp4")

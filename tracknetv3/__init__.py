@@ -3,17 +3,16 @@
 __version__ = "1.0.0"
 
 # Public API - Inference
-from tracknetv3.inference import TrackNetInfer, TrackNetModule, InpaintModule
-from tracknetv3.inference.config import TrackNetConfig, EvalMode
-
-# Public API - Models
-from tracknetv3.models import TrackNet, InpaintNet, get_model
+# Public API - Config
+from tracknetv3.config.constants import COOR_TH, HEIGHT, WIDTH
 
 # Public API - Datasets
 from tracknetv3.datasets import Shuttlecock_Trajectory_Dataset, Video_IterableDataset
+from tracknetv3.inference import InpaintModule, TrackNetInfer, TrackNetModule
+from tracknetv3.inference.config import EvalMode, TrackNetConfig
 
-# Public API - Config
-from tracknetv3.config.constants import WIDTH, HEIGHT, COOR_TH
+# Public API - Models
+from tracknetv3.models import InpaintNet, TrackNet, get_model
 
 __all__ = [
     # Inference
