@@ -1,17 +1,17 @@
-from tracknet_infer import TrackNetInfer, TrackNetConfig
+from tracknetv3.inference import TrackNetInfer, TrackNetConfig
 import time
 
 
 if __name__ == "__main__":
     cfg = TrackNetConfig(
-    tracknet_ckpt="./ckpts/TrackNet_best.pt",
-    inpaintnet_ckpt="./ckpts/InpaintNet_best.pt",  # or ""
-    batch_size=16,
-    eval_mode="weight",
-    large_video=True,
-    max_sample_num=600,
-)
-    
+        tracknet_ckpt="./ckpts/TrackNet_best.pt",
+        inpaintnet_ckpt="./ckpts/InpaintNet_best.pt",  # or ""
+        batch_size=16,
+        eval_mode="weight",
+        large_video=True,
+        max_sample_num=600,
+    )
+
     t0 = time.time()
     infer = TrackNetInfer(cfg)
     print("init seconds:", time.time() - t0)

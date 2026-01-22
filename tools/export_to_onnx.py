@@ -2,7 +2,8 @@ import os
 import argparse
 import torch
 import torch.nn as nn
-from utils.general import get_model, HEIGHT, WIDTH
+from tracknetv3.utils.general import get_model
+from tracknetv3.config.constants import HEIGHT, WIDTH
 
 
 def export_tracknet(

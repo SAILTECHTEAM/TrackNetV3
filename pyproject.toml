@@ -1,9 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "tracknetv3"
-version = "0.1.0"
-description = "TrackNetV3"
+version = "1.0.0"
+description = "Badminton shuttlecock tracking with deep learning"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+keywords = ["deep learning", "computer vision", "object detection", "badminton", "shuttlecock tracking"]
+authors = [
+    {name = "TrackNetV3 Contributors"}
+]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+
 dependencies = [
     "dash>=3.4.0",
     "matplotlib>=3.10.8",
@@ -11,12 +32,51 @@ dependencies = [
     "onnx>=1.19.0",
     "onnxscript>=0.5.0",
     "opencv-python>=4.4.0.46,<4.10.0",
-    "pandas==2.0.0",
+    "pandas>=2.0.0",
     "parse>=1.20.2",
     "pillow>=12.1.0",
     "plotly>=6.5.2",
     "pycocotools>=2.0.11",
     "tensorboard>=2.20.0",
-    "torch>=2.9.1",
+    "torch>=2.0.0",
     "tqdm>=4.67.1",
+    "scipy>=1.7.0",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=22.0.0",
+    "flake8>=4.0.0",
+    "mypy>=0.950",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/TrackNetV3"
+Documentation = "https://github.com/yourusername/TrackNetV3#readme"
+Repository = "https://github.com/yourusername/TrackNetV3"
+"Bug Tracker" = "https://github.com/yourusername/TrackNetV3/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tracknetv3*"]
+exclude = ["tests", "demos", "tools", "scripts", "data", "pred_result", "output", "*.egg-info"]
+
+[tool.setuptools.package-data]
+"tracknetv3" = ["*.txt", "*.rst", "*.md"]
+
+[tool.black]
+line-length = 120
+target-version = ['py38', 'py39', 'py310', 'py311']
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-ra -q --strict-markers"
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false

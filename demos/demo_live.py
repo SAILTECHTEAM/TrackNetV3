@@ -4,7 +4,7 @@ import time
 import argparse
 from collections import deque
 
-from tracknet_infer import (
+from tracknetv3.inference import (
     TrackNetInfer,
     TrackNetConfig,
     TrackNetModule,
@@ -37,7 +37,9 @@ if __name__ == "__main__":
     # Arguments (ONLY here)
     # -------------------------------
     parser = argparse.ArgumentParser("TrackNet Live Demo")
-    parser.add_argument("--src", required=True, help="RTSP URL / video file / webcam index (0)")
+    parser.add_argument(
+        "--src", required=True, help="RTSP URL / video file / webcam index (0)"
+    )
     parser.add_argument("--out_dir", default="pred_result")
     parser.add_argument("--csv", default="tracknet_live.csv")
     parser.add_argument("--mp4", default="tracknet_live.mp4")
@@ -139,7 +141,7 @@ if __name__ == "__main__":
         if out:
             if out["Visibility"] == 1:
                 trail.append((out["X"], out["Y"]))
-            csv_f.write(f'{out["Frame"]},{out["X"]},{out["Y"]},{out["Visibility"]}\n')
+            csv_f.write(f"{out['Frame']},{out['X']},{out['Y']},{out['Visibility']}\n")
 
         if vw is None:
             h, w = frame.shape[:2]
@@ -166,7 +168,7 @@ if __name__ == "__main__":
     cv2.destroyAllWindows()
 
     dt = time.perf_counter() - t0
-    print(f"\n[DONE] frames={fid}  time={dt:.2f}s  FPS={fid/dt:.2f}")
+    print(f"\n[DONE] frames={fid}  time={dt:.2f}s  FPS={fid / dt:.2f}")
 
     print("\n=== Module timing (excluding cap.read) ===")
     s = track_mod.stats
