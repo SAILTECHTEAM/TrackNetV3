@@ -9,9 +9,9 @@ package = false
 
 [tool.uv.workspace]
 members = [
-    "tracknet-core",
-    "tracknet-onnx",
-    "tracknet-pt",
+    "packages/tracknet-core",
+    "packages/tracknet-onnx",
+    "packages/tracknet-pt",
 ]
 
 [tool.ruff]
