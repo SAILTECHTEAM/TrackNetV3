@@ -1,0 +1,20 @@
+[build-system]
+requires = ["uv_build>=0.9.26,<0.10.0"]
+build-backend = "uv_build"
+
+[project]
+name = "tracknet-onnx"
+version = "0.0.0"
+description = "TrackNet ONNX Runtime inference (no torch)"
+requires-python = ">=3.10"
+dependencies = [
+    "tracknet-core",
+    "onnxruntime-gpu>=1.19.0",
+]
+
+[tool.uv.sources]
+tracknet-core = { workspace = true }
+
+[tool.uv.build-backend]
+module-root = ""
+module-name = "tracknet.onnx"

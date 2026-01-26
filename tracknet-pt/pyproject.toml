@@ -1,0 +1,21 @@
+[build-system]
+requires = ["uv_build>=0.9.26,<0.10.0"]
+build-backend = "uv_build"
+
+[project]
+name = "tracknet-pt"
+version = "0.0.0"
+description = "TrackNet PyTorch models, training, and inference"
+requires-python = ">=3.10"
+dependencies = [
+    "tracknet-core",
+    "tensorboard>=2.20.0",
+    "torch>=2.0.0",
+]
+
+[tool.uv.sources]
+tracknet-core = { workspace = true }
+
+[tool.uv.build-backend]
+module-root = ""
+module-name = "tracknet.pt"

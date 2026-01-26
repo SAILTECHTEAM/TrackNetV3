@@ -1,0 +1,25 @@
+[build-system]
+requires = ["uv_build>=0.9.26,<0.10.0"]
+build-backend = "uv_build"
+
+[project]
+name = "tracknet-core"
+version = "0.0.0"
+description = "TrackNet core utilities (no torch/onnxruntime)"
+requires-python = ">=3.10"
+dependencies = [
+    "matplotlib>=3.10.8",
+    "numpy>=1.23.2,<2.0.0",
+    "opencv-python>=4.4.0.46,<4.10.0",
+    "pandas>=2.0.0",
+    "parse>=1.20.2",
+    "pillow>=12.1.0",
+    "pyyaml>=6.0.0",
+    "scipy>=1.7.0",
+    "tqdm>=4.67.1",
+    "pytube>=15.0.0",
+]
+
+[tool.uv.build-backend]
+module-root = ""
+module-name = "tracknet.core"

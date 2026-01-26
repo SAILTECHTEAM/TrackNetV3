@@ -1,64 +1,18 @@
-[build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
-name = "tracknetv3"
-version = "1.0.0"
-description = "Badminton shuttlecock tracking with deep learning"
-readme = "README.md"
+name = "tracknet-workspace"
+version = "0.0.0"
+description = "TrackNet modular workspace (tracknet-core, tracknet-onnx, tracknet-pt)"
 requires-python = ">=3.10"
-license = {text = "MIT"}
-keywords = ["deep learning", "computer vision", "object detection", "badminton", "shuttlecock tracking"]
-authors = [
-    {name = "TrackNetV3 Contributors"}
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = [
+    "tracknet-core",
+    "tracknet-onnx",
+    "tracknet-pt",
 ]
-
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Science/Research",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-]
-
-dependencies = [
-    "dash>=3.4.0",
-    "matplotlib>=3.10.8",
-    "numpy>=1.23.2,<2.0.0",
-    "onnx>=1.19.0",
-    "onnxruntime-gpu>=1.19.0",
-    "onnxscript>=0.5.0",
-    "opencv-python>=4.4.0.46,<4.10.0",
-    "pandas>=2.0.0",
-    "parse>=1.20.2",
-    "pillow>=12.1.0",
-    "plotly>=6.5.2",
-    "pycocotools>=2.0.11",
-    "tensorboard>=2.20.0",
-    "torch>=2.0.0",
-    "tqdm>=4.67.1",
-    "scipy>=1.7.0",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0",
-    "black>=22.0.0",
-    "flake8>=4.0.0",
-    "mypy>=0.950",
-]
-
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["tracknetv3*"]
-exclude = ["tests", "demos", "tools", "scripts", "data", "pred_result", "output", "*.egg-info"]
-
-[tool.setuptools.package-data]
-"tracknetv3" = ["*.txt", "*.rst", "*.md"]
 
 [tool.ruff]
 line-length = 100
