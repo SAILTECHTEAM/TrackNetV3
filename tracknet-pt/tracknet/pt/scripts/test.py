@@ -16,6 +16,8 @@ from pycocotools.cocoeval import COCOeval
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from tracknet.pt.evaluation.ensemble import get_ensemble_weight
+
 from tracknetv3.config.constants import COOR_TH, HEIGHT, WIDTH
 from tracknetv3.datasets import Shuttlecock_Trajectory_Dataset, data_dir
 from tracknetv3.models import get_model
@@ -33,34 +35,6 @@ from tracknetv3.utils.metric import WBCELoss, get_metric
 pred_types = ["TP", "TN", "FP1", "FP2", "FN"]
 pred_types_map = {pred_type: i for i, pred_type in enumerate(pred_types)}
 inpaintnet_eval_types = ["inpaint", "reconstruct", "baseline"]
-
-
-def get_ensemble_weight(seq_len, eval_mode):
-    """Get weight for temporal ensemble.
-
-    Args:
-        seq_len (int): Length of input sequence
-        eval_mode (str): Mode of temporal ensemble
-            Choices:
-                - 'average': Return uniform weight
-                - 'weight': Return positional weight
-
-    Returns:
-        weight (torch.Tensor): Weight for temporal ensemble
-    """
-
-    if eval_mode == "average":
-        weight = torch.ones(seq_len) / seq_len
-    elif eval_mode == "weight":
-        weight = torch.ones(seq_len)
-        for i in range(math.ceil(seq_len / 2)):
-            weight[i] = i + 1
-            weight[seq_len - i - 1] = i + 1
-        weight = weight / weight.sum()
-    else:
-        raise ValueError("Invalid mode")
-
-    return weight
 
 
 def predict_location(heatmap):
