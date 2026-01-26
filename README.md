@@ -1,334 +1,144 @@
-# TrackNetV3: Enhancing ShuttleCock Tracking with Augmentations and Trajectory Rectification
+# TrackNetV3
 
-TrackNetV3 is an advanced shuttlecock tracking system that leverages deep learning to accurately track shuttlecock trajectories in badminton videos. Built on the foundation of TrackNetV2, TrackNetV3 introduces streaming inference capabilities for real-time applications, supporting Offline, Online, and Live processing modes. The system consists of two main modules: TrackNet for shuttlecock detection and InpaintNet for trajectory rectification.
+TrackNetV3 is a production-ready shuttlecock tracking pipeline for badminton video analysis. It extends TrackNetV2 with streaming-capable inference and a trajectory-rectification module (InpaintNet) to improve continuity and reduce missed detections.
 
-[[paper](https://dl.acm.org/doi/10.1145/3595916.3626370)]
+## Project Structure
 
-## Key Features
+This project is organized as a [uv](https://github.com/astral-sh/uv) workspace with three specialized packages:
 
-- **High Accuracy Tracking**: Achieves 97.51% accuracy in shuttlecock detection and tracking
-- **Streaming Inference Modes**:
-  - **Offline Mode**: Process entire videos at once for batch analysis
-  - **Online Mode**: Real-time frame-by-frame processing with trajectory rectification
-  - **Live Mode**: Direct processing from cameras or RTSP streams with immediate visualization
-- **Trajectory Rectification**: InpaintNet module corrects shuttlecock paths for smoother trajectories
-- **Multiple Input Sources**: Support for video files, live cameras, and RTSP streams
-- **Practical Applications**: Ideal for badminton coaching, automated scoring systems, and sports broadcasting
-- **Error Analysis Dashboard**: Interactive web interface for analyzing tracking performance
-
-## Performance
-
-| Model      | Accuracy | Precision | Recall | F1   | FPS |
-|------------|----------|-----------|--------|------|-----|
-| TrackNet   | 94.12%   | 93.83%    | 94.41% | 94.12% | 28.6 |
-| TrackNetV2 | 96.82%   | 96.43%    | 97.21% | 96.82% | 29.8 |
-| TrackNetV3 | 97.51%   | 96.83%    | 97.16% | 97.00% | 30.0 |
-
-![Performance Comparison](figure/Comparison.png)
+- **`tracknet-core`**: Shared utilities, constants, and core logic used by both PyTorch and ONNX implementations.
+- **`tracknet-pt`**: PyTorch-based training and inference module. Includes training scripts, dataset preprocessing, and PyTorch demos.
+- **`tracknet-onnx`**: High-performance inference module using ONNX Runtime.
 
 ## Installation
 
-### Requirements
-- Ubuntu 18.04+
-- Python 3.8+
-- PyTorch 1.10.0+
+This project uses `uv` for dependency management.
 
-### Setup
+### 1. Install uv
+If you haven't installed `uv`, follow the [official installation guide](https://github.com/astral-sh/uv).
+
+### 2. Setup Workspace
+Clone the repository and sync the environment:
 ```bash
-git clone https://github.com/xxxx/TrackNetV3.git
+git clone https://github.com/qaz812345/TrackNetV3.git
 cd TrackNetV3
-pip install -r requirements.txt
+uv sync
 ```
 
 ## Model Checkpoints
 
-TrackNetV3 requires pre-trained checkpoints for both TrackNet and InpaintNet models. You can download them from the following link:
+**Important:** Do not sync checkpoints through Git. 
 
-**Download Checkpoints:** [TrackNetV3_ckpts.zip](https://drive.google.com/file/d/1CfzE87a0f6LhBp0kniSl1-89zaLCZ8cA/view?usp=sharing)
+Download the official pretrained PyTorch checkpoints from the [TrackNetV3 Repository](https://github.com/qaz812345/TrackNetV3) (see Releases or Downloads section). 
 
-After downloading, unzip the file and place the checkpoint files in the `ckpts/` directory:
+Place them in the `ckpts/` directory:
+- `ckpts/TrackNet_best.pt`
+- `ckpts/InpaintNet_best.pt`
 
+## Quick Start (Demos)
+
+All scripts should be executed using `uv run`.
+
+### Offline Mode (Batch Processing)
 ```bash
-# Download the checkpoints
-wget --no-check-certificate 'https://drive.google.com/uc?export=download&id=1CfzE87a0f6LhBp0kniSl1-89zaLCZ8cA' -O TrackNetV3_ckpts.zip
-
-# Unzip and organize
-unzip TrackNetV3_ckpts.zip
-mkdir -p ckpts
-mv TrackNetV3_ckpts/* ckpts/
+uv run python packages/tracknet-pt/extras/demos/demo_offline.py \
+    --input_video path/to/video.mp4 \
+    --output_csv results.csv \
+    --output_video annotated.mp4
 ```
 
-The checkpoint directory should contain:
-- `ckpts/TrackNet_best.pt` - Pre-trained TrackNet model
-- `ckpts/InpaintNet_best.pt` - Pre-trained InpaintNet model
-
-## Quick Start
-
-### Offline Mode
-Process an entire video file for complete trajectory analysis:
-
+### Online Mode (Streaming + Rectification)
 ```bash
-python demo_offline.py --input_video path/to/video.mp4 --output_csv results.csv --output_video output.mp4
+uv run python packages/tracknet-pt/extras/demos/demo_online.py \
+    --input_video path/to/video.mp4 \
+    --output_csv online_results.csv \
+    --output_video corrected.mp4
 ```
 
-### Online Mode
-Stream frame-by-frame processing with trajectory rectification:
-
+### Live Mode (Webcam / RTSP)
 ```bash
-python demo_online.py --input_video path/to/video.mp4 --output_csv results.csv --output_video output.mp4
+# Webcam
+uv run python packages/tracknet-pt/extras/demos/demo_live.py --input 0
+
+# RTSP
+uv run python packages/tracknet-pt/extras/demos/demo_live.py --input rtsp://<user>:<pass>@host:port/path
 ```
 
-### Live Mode
-Real-time processing from camera or RTSP stream:
+## Dataset Preprocessing
 
+Generate training sequences from raw videos and CSV labels:
 ```bash
-# From webcam
-python demo_live.py --input 0
-
-# From RTSP stream
-python demo_live.py --input rtsp://your-stream-url
-
-# From video file (for testing)
-python demo_live.py --input path/to/video.mp4
-```
-
-## Usage
-
-### Inference Classes
-
-TrackNetV3 provides three main inference classes for different processing needs:
-
-- **TrackNetInfer**: Designed for offline processing of complete videos. This class processes entire video files at once, making it suitable for batch processing and complete trajectory analysis.
-  
-- **TrackNetModule**: Optimized for streaming applications. This class handles frame-by-frame inference while maintaining state across frames, enabling real-time processing.
-
-- **InpaintModule**: Trajectory rectification module for streaming scenarios. Works alongside TrackNetModule to correct and smooth shuttlecock paths in real-time.
-
-### Demo Scripts
-
-#### Offline Demo (`demo_offline.py`)
-Processes entire videos using the TrackNetInfer class.
-
-**Arguments:**
-- `--input_video`: Path to input video file
-- `--output_csv`: Path to save tracking results as CSV
-- `--output_video`: Path to save annotated output video
-
-**Example:**
-```bash
-python demo_offline.py --input_video badminton_match.mp4 --output_csv tracking_results.csv --output_video annotated_match.mp4
-```
-
-#### Online Demo (`demo_online.py`)
-Demonstrates streaming frame-by-frame processing with trajectory rectification using TrackNetModule and InpaintModule.
-
-**Arguments:**
-- `--input_video`: Path to input video file
-- `--output_csv`: Path to save tracking results as CSV
-- `--output_video`: Path to save annotated output video
-
-**Example:**
-```bash
-python demo_online.py --input_video live_feed.mp4 --output_csv online_results.csv --output_video corrected_feed.mp4
-```
-
-#### Live Demo (`demo_live.py`)
-Real-time processing from various sources using TrackNetModule.
-
-**Arguments:**
-- `--input`: Input source (0 for webcam, RTSP URL, or video file path)
-
-**Examples:**
-```bash
-# Webcam input
-python demo_live.py --input 0
-
-# RTSP stream
-python demo_live.py --input rtsp://192.168.1.100:554/stream
-
-# Video file (for testing live processing)
-python demo_live.py --input test_video.mp4
-```
-
-## Dataset Preparation
-
-### Download Dataset
-The TrackNetV3 dataset is available from the original TrackNetV2 repository:
-
-```bash
-# Download the badminton dataset
-wget https://github.com/xxxx/dataset/raw/master/badminton_dataset.zip
-unzip badminton_dataset.zip
-```
-
-### Dataset Structure
-The dataset should be organized as follows:
-
-```
-dataset/
-├── train/
-│   ├── video_001.mp4
-│   ├── video_001.csv
-│   ├── video_002.mp4
-│   ├── video_002.csv
-│   └── ...
-├── val/
-│   ├── video_003.mp4
-│   ├── video_003.csv
-│   └── ...
-└── test/
-    ├── video_004.mp4
-    ├── video_004.csv
-    └── ...
-```
-
-Each video file should have a corresponding CSV file containing the shuttlecock positions with columns: `frame`, `x`, `y`, `width`, `height`, `label`.
-
-### Preprocessing
-Preprocess the dataset to generate training data:
-
-```bash
-python scripts/preprocess.py \
+uv run python packages/tracknet-pt/extras/tools/preprocess.py \
     --dataset_path /path/to/dataset \
     --output_path /path/to/preprocessed \
     --seq_len 8 \
     --bg_mode subtract
 ```
 
-**Preprocessing Arguments:**
-- `--dataset_path`: Path to the raw dataset
-- `--output_path`: Path to save preprocessed data
-- `--seq_len`: Length of input sequence (default: 8)
-- `--bg_mode`: Background mode for preprocessing
-  - `""`: RGB input (L x 3 channels)
-  - `"subtract"`: Difference frame (L x 1 channel) - **Recommended**
-  - `"subtract_concat"`: RGB + Difference frame (L x 4 channels)
-  - `"concat"`: RGB with extra frame (L+1 x 3 channels)
-- `--num_workers`: Number of workers for data loading (default: 4)
-
 ## Training
 
-### Training TrackNet
-Train the shuttlecock detection model:
+Train TrackNet or InpaintNet models:
 
 ```bash
-python scripts/train.py --model_name TrackNet --seq_len 8 --epochs 50 --batch_size 8 --save_dir exp_tracknet
+# TrackNet
+uv run python packages/tracknet-pt/tracknet/pt/scripts/train.py \
+    --model_name TrackNet --seq_len 8 --epochs 50 --batch_size 8 --save_dir exp_tracknet
+
+# InpaintNet
+uv run python packages/tracknet-pt/tracknet/pt/scripts/train.py \
+    --model_name InpaintNet --seq_len 8 --epochs 30 --batch_size 4 --save_dir exp_inpaintnet
 ```
 
-**Key Arguments:**
-- `--model_name`: Model type (`TrackNet` or `InpaintNet`)
-- `--seq_len`: Length of input sequence (default: 8)
-- `--epochs`: Number of training epochs
-- `--batch_size`: Batch size for training
-- `--save_dir`: Directory to save checkpoints and logs
-- `--bg_mode`: Background mode for TrackNet
-  - `""`: RGB input (L x 3 channels)
-  - `"subtract"`: Difference frame (L x 1 channel) - **Recommended**
-  - `"subtract_concat"`: RGB + Difference frame (L x 4 channels)
-  - `"concat"`: RGB with extra frame (L+1 x 3 channels)
-- `--alpha`: Alpha for sample mixup (default: -1, no mixup)
-- `--lr_scheduler`: Learning rate scheduler (`StepLR` or empty)
-- `--resume_training`: Resume training from checkpoint
+## ONNX Export
 
-### Training InpaintNet
-Train the trajectory rectification model:
+Export PyTorch checkpoints to ONNX for optimized inference.
 
+Note: do not combine `--dynamic-batch` and `--bs` in the same command. Use one of the two modes:
+
+- Dynamic-batch export (variable batch dimension): omit `--bs` and pass `--dynamic-batch`.
+- Fixed-batch export (static batch size): pass `--bs <N>` and omit `--dynamic-batch`.
+
+### Examples
+
+Export TrackNet with a dynamic batch dimension:
 ```bash
-python scripts/train.py --model_name InpaintNet --seq_len 8 --epochs 30 --batch_size 4 --save_dir exp_inpaintnet
+uv run python packages/tracknet-pt/extras/tools/export_tracknet_onnx.py \
+    --checkpoint ckpts/TrackNet_best.pt \
+    --output ckpts/TrackNet.onnx \
+    --dynamic-batch
 ```
 
-**Key Arguments:**
-- `--mask_ratio`: Ratio of random mask during training InpaintNet (default: 0.3)
-- `--tolerance`: Difference tolerance for evaluation (default: 4)
-
-### Resuming Training
-Resume training from a checkpoint:
-
+Export TrackNet with a fixed batch size (batch size = 1):
 ```bash
-python scripts/train.py --model_name TrackNet --save_dir exp_tracknet --resume_training --epochs 100
+uv run python packages/tracknet-pt/extras/tools/export_tracknet_onnx.py \
+    --checkpoint ckpts/TrackNet_best.pt \
+    --output ckpts/TrackNet_bs1.onnx \
+    --bs 1
 ```
 
-### TensorBoard Visualization
-Monitor training progress with TensorBoard:
-
+Export InpaintNet with a dynamic batch dimension:
 ```bash
-tensorboard --logdir exp_tracknet/logs
-# View at http://localhost:6006/
+uv run python packages/tracknet-pt/extras/tools/export_inpaintnet_onnx.py \
+    --checkpoint ckpts/InpaintNet_best.pt \
+    --output ckpts/InpaintNet.onnx \
+    --dynamic-batch
+```
+
+Export InpaintNet with a fixed batch size (batch size = 1):
+```bash
+uv run python packages/tracknet-pt/extras/tools/export_inpaintnet_onnx.py \
+    --checkpoint ckpts/InpaintNet_best.pt \
+    --output ckpts/InpaintNet_bs1.onnx \
+    --bs 1
 ```
 
 ## Evaluation
 
-### Testing TrackNet
-Evaluate TrackNet model on test set:
-
+Benchmark models on a dataset split:
 ```bash
-python scripts/test.py \
-    --tracknet_file ckpts/TrackNet_best.pt \
-    --split test \
-    --eval_mode weight \
-    --tolerance 4 \
-    --save_dir output_tracknet
-```
-
-### Testing TrackNetV3 (TrackNet + InpaintNet)
-Evaluate the full TrackNetV3 pipeline:
-
-```bash
-python scripts/test.py \
+uv run python packages/tracknet-pt/tracknet/pt/scripts/test.py \
     --tracknet_file ckpts/TrackNet_best.pt \
     --inpaintnet_file ckpts/InpaintNet_best.pt \
     --split test \
-    --eval_mode weight \
-    --tolerance 4 \
-    --save_dir output_tracknetv3
+    --save_dir output_eval
 ```
-
-### Testing on Video File
-Evaluate on a specific video file:
-
-```bash
-python scripts/test.py \
-    --tracknet_file ckpts/TrackNet_best.pt \
-    --inpaintnet_file ckpts/InpaintNet_best.pt \
-    --video_file /path/to/video.mp4 \
-    --save_dir output_video
-```
-
-### Key Evaluation Arguments
-- `--tracknet_file`: Path to TrackNet checkpoint
-- `--inpaintnet_file`: Path to InpaintNet checkpoint (optional)
-- `--split`: Dataset split (`train`, `val`, or `test`)
-- `--eval_mode`: Temporal ensemble mode
-  - `weight`: Positional weight (default)
-  - `average`: Uniform weight
-  - `nonoverlap`: No temporal ensemble
-- `--tolerance`: Tolerance for FP1 evaluation (default: 4)
-- `--linear_interp`: Use linear interpolation for trajectory correction
-- `--output_pred`: Output detailed prediction results for error analysis
-- `--output_bbox`: Output COCO format bbox for mAP evaluation
-- `--verbose`: Show progress bar
-- `--debug`: Run with debug mode (limited samples)
-
-## Error Analysis
-
-TrackNetV3 provides an interactive error analysis dashboard built with Dash.
-
-To run the error analysis interface:
-
-```bash
-python error_analysis.py
-```
-
-This will start a web server. Open your browser and navigate to `http://127.0.0.1:8050/` to access the dashboard.
-
-The dashboard allows you to:
-- Visualize tracking results
-- Analyze prediction errors
-- Compare different models
-- Inspect individual frames
-
-## References
-
-- [TrackNetV2 Paper](https://arxiv.org/abs/xxxx)
-- [Dataset](https://github.com/xxxx/dataset)
-- [Labeling Tool](https://github.com/xxxx/labeling)
