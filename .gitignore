@@ -2,7 +2,7 @@
 data/
 test/
 ckpts/
-onnx/
+/onnx/
 figure/
 __pycache__/
 utils/__pycache__/
