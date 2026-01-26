@@ -4,7 +4,6 @@ import cv2
 import numpy as np
 from PIL import Image
 from torch.utils.data import IterableDataset
-
 from tracknet.core.config.constants import HEIGHT, WIDTH
 
 

@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-
 from tracknet.core.config.constants import HEIGHT, WIDTH
 
 

@@ -1,7 +1,6 @@
 import argparse
 
 import torch
-
 from tracknet.pt.evaluation.metrics import test
 from tracknet.pt.models.factory import get_model
 

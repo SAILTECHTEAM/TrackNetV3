@@ -4,7 +4,6 @@ import math
 
 import numpy as np
 import torch
-
 from tracknet.core.config.constants import HEIGHT, WIDTH
 from tracknet.core.evaluation.predict import predict_location
 from tracknet.core.utils.general import to_img, to_img_format

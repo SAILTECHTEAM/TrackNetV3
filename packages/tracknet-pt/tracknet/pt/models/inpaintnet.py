@@ -2,7 +2,6 @@
 
 import torch
 import torch.nn as nn
-
 from tracknet.pt.models.blocks import Conv1DBlock, Double1DConv
 
 

@@ -8,7 +8,6 @@ from typing import Any
 import cv2
 import numpy as np
 import onnxruntime as ort
-
 from tracknet.core.config.constants import HEIGHT, WIDTH
 
 

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 
-def plot_heatmap_pred_sample(x, y, y_pred, c, bg_mode: str = "", save_dir: str = ""):
+def plot_heatmap_pred_sample(_x, _y, y_pred, _c, bg_mode: str = "", save_dir: str = ""):
     """Plot one training sample for heatmap prediction.
 
     Signature required by training/tools; implementation is intentionally minimal.
@@ -94,6 +94,7 @@ def plot_median_files(data_dir):
     """Plot median frames saved under a dataset directory."""
 
     import os
+
     import matplotlib.pyplot as plt
     import numpy as np
 

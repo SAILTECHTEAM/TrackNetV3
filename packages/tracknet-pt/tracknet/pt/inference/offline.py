@@ -8,7 +8,6 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-
 from tracknet.core.config.constants import COOR_TH, HEIGHT, WIDTH
 from tracknet.core.utils.general import (
     generate_frames,
@@ -16,11 +15,11 @@ from tracknet.core.utils.general import (
 )
 
 # generate_inpaint_mask and linear_interp are implemented in tracknet.core.utils.trajectory.
-from tracknet.core.utils.trajectory import generate_inpaint_mask, linear_interp
+from tracknet.core.utils.trajectory import generate_inpaint_mask
 from tracknet.pt.datasets.shuttlecock import Shuttlecock_Trajectory_Dataset
 from tracknet.pt.datasets.video_iterable import Video_IterableDataset
 from tracknet.pt.evaluation.ensemble import get_ensemble_weight
-from tracknet.pt.inference.config import EvalMode, TrackNetConfig
+from tracknet.pt.inference.config import TrackNetConfig
 from tracknet.pt.models.factory import get_model
 
 from .helpers import _predict_from_network_outputs_fast

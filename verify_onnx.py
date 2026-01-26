@@ -1,10 +1,12 @@
-import os
-import sys
-import numpy as np
 import inspect
-import onnxruntime as ort
-from tracknetv3.inference import TrackNetModule, TrackNetModuleONNX
-from tracknetv3.inference import InpaintModule, InpaintModuleONNX
+import os
+
+from tracknetv3.inference import (
+    InpaintModule,
+    InpaintModuleONNX,
+    TrackNetModule,
+    TrackNetModuleONNX,
+)
 
 
 def test_api_compatibility():
@@ -56,7 +58,7 @@ def test_module_loading():
         return
 
     try:
-        tn_module = TrackNetModuleONNX(
+        TrackNetModuleONNX(
             model_path=tn_path,
             seq_len=15,  # Try to match or it will raise ValueError if metadata exists
             bg_mode="",
@@ -72,15 +74,11 @@ def test_module_loading():
         if match:
             actual_seq_len = int(match.group(1))
             print(f"Retrying with seq_len={actual_seq_len}")
-            tn_module = TrackNetModuleONNX(
-                model_path=tn_path, seq_len=actual_seq_len, bg_mode="", device=None
-            )
+            TrackNetModuleONNX(model_path=tn_path, seq_len=actual_seq_len, bg_mode="", device=None)
             print("✓ TrackNetModuleONNX loaded (retried)")
 
     try:
-        inp_module = InpaintModuleONNX(
-            model_path=inp_path, seq_len=15, device=None, img_scaler=(1.0, 1.0)
-        )
+        InpaintModuleONNX(model_path=inp_path, seq_len=15, device=None, img_scaler=(1.0, 1.0))
         print("✓ InpaintModuleONNX loaded")
     except ValueError as e:
         print(f"InpaintNet loading failed (possible seq_len mismatch): {e}")
@@ -90,7 +88,7 @@ def test_module_loading():
         if match:
             actual_seq_len = int(match.group(1))
             print(f"Retrying with seq_len={actual_seq_len}")
-            inp_module = InpaintModuleONNX(
+            InpaintModuleONNX(
                 model_path=inp_path, seq_len=actual_seq_len, device=None, img_scaler=(1.0, 1.0)
             )
             print("✓ InpaintModuleONNX loaded (retried)")
@@ -102,7 +100,10 @@ def test_error_handling():
         TrackNetModuleONNX(model_path="/nonexistent.onnx", seq_len=15, bg_mode="")
     except ValueError as e:
         print(f"✓ Caught expected ValueError for nonexistent path: {e}")
-        assert "ONNX model file not found" in str(e)
+        if "ONNX model file not found" not in str(e):
+            raise AssertionError(
+                f"Expected 'ONNX model file not found' in error message, got: {e}"
+            ) from e
 
 
 if __name__ == "__main__":

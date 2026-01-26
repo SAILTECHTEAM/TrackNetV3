@@ -12,7 +12,6 @@ import plotly.graph_objects as go
 from dash import dcc, html
 from dash.dependencies import Input, Output
 from dash.exceptions import PreventUpdate
-
 from tracknet.core.config.constants import IMG_FORMAT
 from tracknet.core.utils.general import get_rally_dirs
 from tracknet.pt.datasets.shuttlecock import data_dir

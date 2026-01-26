@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-
 BgMode = Literal["", "subtract", "subtract_concat", "concat"]
 
 

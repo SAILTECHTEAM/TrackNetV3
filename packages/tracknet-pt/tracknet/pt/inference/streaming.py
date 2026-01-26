@@ -7,7 +7,6 @@ from typing import Any
 import cv2
 import numpy as np
 import torch
-
 from tracknet.core.config.constants import HEIGHT, WIDTH
 from tracknet.pt.evaluation.ensemble import get_ensemble_weight
 

@@ -1,7 +1,7 @@
 import argparse
 import os
-import torch
 
+import torch
 from tracknet.pt.models.factory import get_model
 
 

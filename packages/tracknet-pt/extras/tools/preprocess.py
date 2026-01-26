@@ -3,15 +3,14 @@ import os
 import shutil
 
 import parse
-
-from tracknet.core.utils.visualize import plot_median_files
-from tracknet.pt.datasets.shuttlecock import data_dir
 from tracknet.core.utils.general import (
     generate_data_frames,
     get_match_median,
     get_num_frames,
     list_dirs,
 )
+from tracknet.core.utils.visualize import plot_median_files
+from tracknet.pt.datasets.shuttlecock import data_dir
 
 
 def _build_argparser() -> argparse.ArgumentParser:

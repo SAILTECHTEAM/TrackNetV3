@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 import parse
 from PIL import Image, ImageDraw
-
 from tracknet.core.config.constants import (
     HEIGHT,
     IMG_FORMAT,

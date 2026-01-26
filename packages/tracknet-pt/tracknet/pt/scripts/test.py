@@ -15,7 +15,6 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-
 from tracknet.core.config.constants import COOR_TH, HEIGHT, WIDTH
 from tracknet.core.utils.general import (
     generate_frames,

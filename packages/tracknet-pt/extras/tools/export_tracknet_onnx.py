@@ -1,7 +1,7 @@
 import argparse
 import os
-import torch
 
+import torch
 from tracknet.core.config.constants import HEIGHT, WIDTH
 from tracknet.pt.models.factory import get_model
 

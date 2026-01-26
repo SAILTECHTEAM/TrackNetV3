@@ -7,7 +7,6 @@ import parse
 from PIL import Image
 from torch.utils.data import Dataset
 from tqdm import tqdm
-
 from tracknet.core.config.constants import HEIGHT, IMG_FORMAT, SIGMA, WIDTH
 from tracknet.core.utils.general import get_match_median, get_rally_dirs
 
