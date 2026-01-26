@@ -2,10 +2,10 @@ import os
 import shutil
 
 import parse
-from tracknetv3.utils.visualize import plot_median_files
 
-from tracknetv3.datasets import data_dir
-from tracknetv3.utils.general import (
+from tracknet.core.utils.visualize import plot_median_files
+from tracknet.pt.datasets.shuttlecock import data_dir
+from tracknet.core.utils.general import (
     generate_data_frames,
     get_match_median,
     get_num_frames,

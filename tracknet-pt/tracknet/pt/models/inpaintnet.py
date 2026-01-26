@@ -3,7 +3,7 @@
 import torch
 import torch.nn as nn
 
-from tracknetv3.models.blocks import Conv1DBlock, Double1DConv
+from tracknet.pt.models.blocks import Conv1DBlock, Double1DConv
 
 
 class InpaintNet(nn.Module):

@@ -1,6 +1,7 @@
 import time
 
-from tracknetv3.inference import TrackNetConfig, TrackNetInfer
+from tracknet.pt.inference.offline import TrackNetInfer
+from tracknet.pt.inference.config import TrackNetConfig
 
 if __name__ == "__main__":
     cfg = TrackNetConfig(

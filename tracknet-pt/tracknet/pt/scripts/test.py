@@ -16,12 +16,8 @@ from pycocotools.cocoeval import COCOeval
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from tracknet.pt.evaluation.ensemble import get_ensemble_weight
-
-from tracknetv3.config.constants import COOR_TH, HEIGHT, WIDTH
-from tracknetv3.datasets import Shuttlecock_Trajectory_Dataset, data_dir
-from tracknetv3.models import get_model
-from tracknetv3.utils.general import (
+from tracknet.core.config.constants import COOR_TH, HEIGHT, WIDTH
+from tracknet.core.utils.general import (
     generate_frames,
     get_rally_dirs,
     to_img,
@@ -29,8 +25,11 @@ from tracknetv3.utils.general import (
     write_pred_csv,
     write_pred_video,
 )
-from tracknetv3.utils.trajectory import generate_inpaint_mask, linear_interp
-from tracknetv3.utils.metric import WBCELoss, get_metric
+from tracknet.core.utils.trajectory import generate_inpaint_mask, linear_interp
+from tracknet.pt.datasets.shuttlecock import Shuttlecock_Trajectory_Dataset, data_dir
+from tracknet.pt.evaluation.ensemble import get_ensemble_weight
+from tracknet.pt.models.factory import get_model
+from tracknet.pt.utils.metric import WBCELoss, get_metric
 
 pred_types = ["TP", "TN", "FP1", "FP2", "FN"]
 pred_types_map = {pred_type: i for i, pred_type in enumerate(pred_types)}

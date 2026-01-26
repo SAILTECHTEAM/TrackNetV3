@@ -13,9 +13,9 @@ from dash import dcc, html
 from dash.dependencies import Input, Output
 from dash.exceptions import PreventUpdate
 
-from tracknetv3.config.constants import IMG_FORMAT
-from tracknetv3.datasets import data_dir
-from tracknetv3.utils.general import get_rally_dirs
+from tracknet.core.config.constants import IMG_FORMAT
+from tracknet.core.utils.general import get_rally_dirs
+from tracknet.pt.datasets.shuttlecock import data_dir
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--split", type=str, default="test")
@@ -43,8 +43,8 @@ elif split == "test":
             "value": "test/tracknet_eval/test_eval_analysis_weight.json",
         },
         {
-            "label": "tracknetv3",
-            "value": "test/tracknetv3_eval/test_eval_analysis_weight.json",
+            "label": "tracknet-pt",
+            "value": "test/tracknet_pt_eval/test_eval_analysis_weight.json",
         },
     ]
 else:

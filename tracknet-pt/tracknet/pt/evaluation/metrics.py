@@ -5,9 +5,9 @@ import math
 import numpy as np
 import torch
 
-from tracknetv3.config.constants import HEIGHT, WIDTH
-from tracknetv3.evaluation.predict import predict_location
-from tracknetv3.utils.general import to_img, to_img_format
+from tracknet.core.config.constants import HEIGHT, WIDTH
+from tracknet.core.evaluation.predict import predict_location
+from tracknet.core.utils.general import to_img, to_img_format
 
 pred_types = ["TP", "TN", "FP1", "FP2", "FN"]
 pred_types_map = {pred_type: i for i, pred_type in enumerate(pred_types)}

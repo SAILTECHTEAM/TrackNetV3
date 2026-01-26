@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from tracknetv3.config.constants import HEIGHT, WIDTH
+from tracknet.core.config.constants import HEIGHT, WIDTH
 
 
 def _predict_from_network_outputs_fast(indices, y_pred=None, c_pred=None, img_scaler=(1, 1)):

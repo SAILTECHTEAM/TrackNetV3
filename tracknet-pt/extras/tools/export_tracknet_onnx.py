@@ -1,8 +1,9 @@
 import argparse
 import os
 import torch
-from tracknetv3.config.constants import HEIGHT, WIDTH
-from tracknetv3.models import get_model
+
+from tracknet.core.config.constants import HEIGHT, WIDTH
+from tracknet.pt.models.factory import get_model
 
 
 def main(args):

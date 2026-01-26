@@ -3,7 +3,7 @@
 import torch
 import torch.nn as nn
 
-from tracknetv3.models.blocks import Double2DConv, Triple2DConv
+from tracknet.pt.models.blocks import Double2DConv, Triple2DConv
 
 
 class TrackNet(nn.Module):

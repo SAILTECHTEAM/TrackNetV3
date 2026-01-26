@@ -8,8 +8,8 @@ import cv2
 import numpy as np
 import torch
 
-from tracknetv3.config.constants import HEIGHT, WIDTH
-from tracknetv3.evaluation.ensemble import get_ensemble_weight
+from tracknet.core.config.constants import HEIGHT, WIDTH
+from tracknet.pt.evaluation.ensemble import get_ensemble_weight
 
 
 class TrackNetModule:

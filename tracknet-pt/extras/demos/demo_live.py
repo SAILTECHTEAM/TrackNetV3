@@ -5,12 +5,9 @@ from collections import deque
 
 import cv2
 
-from tracknetv3.inference import (
-    InpaintModule,
-    TrackNetConfig,
-    TrackNetInfer,
-    TrackNetModule,
-)
+from tracknet.pt.inference.config import TrackNetConfig
+from tracknet.pt.inference.offline import TrackNetInfer
+from tracknet.pt.inference.streaming import InpaintModule, TrackNetModule
 
 
 def open_writer_mp4(path, w, h, fps):

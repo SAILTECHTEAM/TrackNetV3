@@ -3,12 +3,9 @@ import time
 
 import cv2
 
-from tracknetv3.inference import (
-    InpaintModule,
-    TrackNetConfig,
-    TrackNetInfer,
-    TrackNetModule,
-)
+from tracknet.pt.inference.config import TrackNetConfig
+from tracknet.pt.inference.offline import TrackNetInfer
+from tracknet.pt.inference.streaming import InpaintModule, TrackNetModule
 
 # (no self.stats here)
 

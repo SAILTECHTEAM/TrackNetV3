@@ -8,16 +8,17 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from tracknetv3.utils.visualize import (
+from tracknet.core.utils.visualize import (
     plot_heatmap_pred_sample,
     plot_traj_pred_sample,
     write_to_tb,
 )
 
-from tracknetv3.datasets import Shuttlecock_Trajectory_Dataset
-from tracknetv3.evaluation.metrics import eval_inpaintnet, eval_tracknet
-from tracknetv3.utils.general import ResumeArgumentParser, get_model, to_img_format
-from tracknetv3.utils.metric import WBCELoss
+from tracknet.core.utils.general import ResumeArgumentParser, to_img_format
+from tracknet.pt.datasets.shuttlecock import Shuttlecock_Trajectory_Dataset
+from tracknet.pt.evaluation.metrics import eval_inpaintnet, eval_tracknet
+from tracknet.pt.models.factory import get_model
+from tracknet.pt.utils.metric import WBCELoss
 
 
 def mixup(x, y, alpha=0.5):

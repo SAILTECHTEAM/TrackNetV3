@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 from torch.utils.data import IterableDataset
 
-from tracknetv3.config.constants import HEIGHT, WIDTH
+from tracknet.core.config.constants import HEIGHT, WIDTH
 
 
 class Video_IterableDataset(IterableDataset):
