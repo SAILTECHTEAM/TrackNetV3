@@ -10,9 +10,8 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-# generate_inpaint_mask is implemented in scripts/test.py (utility function).
-# Import here to avoid undefined name during linting.
-from scripts.test import generate_inpaint_mask
+# generate_inpaint_mask and linear_interp are implemented in tracknetv3.utils.trajectory.
+from tracknetv3.utils.trajectory import generate_inpaint_mask, linear_interp
 from tracknetv3.config.constants import COOR_TH, HEIGHT, WIDTH
 from tracknetv3.datasets import Shuttlecock_Trajectory_Dataset, Video_IterableDataset
 from tracknetv3.evaluation.ensemble import get_ensemble_weight

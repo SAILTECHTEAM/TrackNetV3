@@ -30,7 +30,8 @@ TrackNetV3 is an advanced shuttlecock tracking system that leverages deep learni
 
 ### Requirements
 - Ubuntu 18.04+
-- Python 3.6+
+- Python 3.8+
+- PyTorch 1.10.0+
 
 ### Setup
 ```bash
@@ -38,6 +39,28 @@ git clone https://github.com/xxxx/TrackNetV3.git
 cd TrackNetV3
 pip install -r requirements.txt
 ```
+
+## Model Checkpoints
+
+TrackNetV3 requires pre-trained checkpoints for both TrackNet and InpaintNet models. You can download them from the following link:
+
+**Download Checkpoints:** [TrackNetV3_ckpts.zip](https://drive.google.com/file/d/1CfzE87a0f6LhBp0kniSl1-89zaLCZ8cA/view?usp=sharing)
+
+After downloading, unzip the file and place the checkpoint files in the `ckpts/` directory:
+
+```bash
+# Download the checkpoints
+wget --no-check-certificate 'https://drive.google.com/uc?export=download&id=1CfzE87a0f6LhBp0kniSl1-89zaLCZ8cA' -O TrackNetV3_ckpts.zip
+
+# Unzip and organize
+unzip TrackNetV3_ckpts.zip
+mkdir -p ckpts
+mv TrackNetV3_ckpts/* ckpts/
+```
+
+The checkpoint directory should contain:
+- `ckpts/TrackNet_best.pt` - Pre-trained TrackNet model
+- `ckpts/InpaintNet_best.pt` - Pre-trained InpaintNet model
 
 ## Quick Start
 
@@ -127,33 +150,164 @@ python demo_live.py --input rtsp://192.168.1.100:554/stream
 python demo_live.py --input test_video.mp4
 ```
 
-## Training
+## Dataset Preparation
 
-### Dataset Preparation
-Prepare the badminton video dataset following the TrackNetV2 methodology. Ensure videos are properly labeled with shuttlecock positions.
+### Download Dataset
+The TrackNetV3 dataset is available from the original TrackNetV2 repository:
+
+```bash
+# Download the badminton dataset
+wget https://github.com/xxxx/dataset/raw/master/badminton_dataset.zip
+unzip badminton_dataset.zip
+```
+
+### Dataset Structure
+The dataset should be organized as follows:
+
+```
+dataset/
+├── train/
+│   ├── video_001.mp4
+│   ├── video_001.csv
+│   ├── video_002.mp4
+│   ├── video_002.csv
+│   └── ...
+├── val/
+│   ├── video_003.mp4
+│   ├── video_003.csv
+│   └── ...
+└── test/
+    ├── video_004.mp4
+    ├── video_004.csv
+    └── ...
+```
+
+Each video file should have a corresponding CSV file containing the shuttlecock positions with columns: `frame`, `x`, `y`, `width`, `height`, `label`.
+
+### Preprocessing
+Preprocess the dataset to generate training data:
+
+```bash
+python scripts/preprocess.py \
+    --dataset_path /path/to/dataset \
+    --output_path /path/to/preprocessed \
+    --seq_len 8 \
+    --bg_mode subtract
+```
+
+**Preprocessing Arguments:**
+- `--dataset_path`: Path to the raw dataset
+- `--output_path`: Path to save preprocessed data
+- `--seq_len`: Length of input sequence (default: 8)
+- `--bg_mode`: Background mode for preprocessing
+  - `""`: RGB input (L x 3 channels)
+  - `"subtract"`: Difference frame (L x 1 channel) - **Recommended**
+  - `"subtract_concat"`: RGB + Difference frame (L x 4 channels)
+  - `"concat"`: RGB with extra frame (L+1 x 3 channels)
+- `--num_workers`: Number of workers for data loading (default: 4)
+
+## Training
 
 ### Training TrackNet
 Train the shuttlecock detection model:
 
 ```bash
-python train.py --model tracknet --dataset_path /path/to/dataset --epochs 50 --batch_size 8
+python scripts/train.py --model_name TrackNet --seq_len 8 --epochs 50 --batch_size 8 --save_dir exp_tracknet
 ```
+
+**Key Arguments:**
+- `--model_name`: Model type (`TrackNet` or `InpaintNet`)
+- `--seq_len`: Length of input sequence (default: 8)
+- `--epochs`: Number of training epochs
+- `--batch_size`: Batch size for training
+- `--save_dir`: Directory to save checkpoints and logs
+- `--bg_mode`: Background mode for TrackNet
+  - `""`: RGB input (L x 3 channels)
+  - `"subtract"`: Difference frame (L x 1 channel) - **Recommended**
+  - `"subtract_concat"`: RGB + Difference frame (L x 4 channels)
+  - `"concat"`: RGB with extra frame (L+1 x 3 channels)
+- `--alpha`: Alpha for sample mixup (default: -1, no mixup)
+- `--lr_scheduler`: Learning rate scheduler (`StepLR` or empty)
+- `--resume_training`: Resume training from checkpoint
 
 ### Training InpaintNet
 Train the trajectory rectification model:
 
 ```bash
-python train.py --model inpaintnet --dataset_path /path/to/dataset --epochs 30 --batch_size 4
+python scripts/train.py --model_name InpaintNet --seq_len 8 --epochs 30 --batch_size 4 --save_dir exp_inpaintnet
+```
+
+**Key Arguments:**
+- `--mask_ratio`: Ratio of random mask during training InpaintNet (default: 0.3)
+- `--tolerance`: Difference tolerance for evaluation (default: 4)
+
+### Resuming Training
+Resume training from a checkpoint:
+
+```bash
+python scripts/train.py --model_name TrackNet --save_dir exp_tracknet --resume_training --epochs 100
+```
+
+### TensorBoard Visualization
+Monitor training progress with TensorBoard:
+
+```bash
+tensorboard --logdir exp_tracknet/logs
+# View at http://localhost:6006/
 ```
 
 ## Evaluation
 
-To evaluate the model on the test set:
+### Testing TrackNet
+Evaluate TrackNet model on test set:
 
 ```bash
-python test.py --model tracknet --test_set_path [path/to/test/set]
-python test.py --model inpaintnet --test_set_path [path/to/test/set]
+python scripts/test.py \
+    --tracknet_file ckpts/TrackNet_best.pt \
+    --split test \
+    --eval_mode weight \
+    --tolerance 4 \
+    --save_dir output_tracknet
 ```
+
+### Testing TrackNetV3 (TrackNet + InpaintNet)
+Evaluate the full TrackNetV3 pipeline:
+
+```bash
+python scripts/test.py \
+    --tracknet_file ckpts/TrackNet_best.pt \
+    --inpaintnet_file ckpts/InpaintNet_best.pt \
+    --split test \
+    --eval_mode weight \
+    --tolerance 4 \
+    --save_dir output_tracknetv3
+```
+
+### Testing on Video File
+Evaluate on a specific video file:
+
+```bash
+python scripts/test.py \
+    --tracknet_file ckpts/TrackNet_best.pt \
+    --inpaintnet_file ckpts/InpaintNet_best.pt \
+    --video_file /path/to/video.mp4 \
+    --save_dir output_video
+```
+
+### Key Evaluation Arguments
+- `--tracknet_file`: Path to TrackNet checkpoint
+- `--inpaintnet_file`: Path to InpaintNet checkpoint (optional)
+- `--split`: Dataset split (`train`, `val`, or `test`)
+- `--eval_mode`: Temporal ensemble mode
+  - `weight`: Positional weight (default)
+  - `average`: Uniform weight
+  - `nonoverlap`: No temporal ensemble
+- `--tolerance`: Tolerance for FP1 evaluation (default: 4)
+- `--linear_interp`: Use linear interpolation for trajectory correction
+- `--output_pred`: Output detailed prediction results for error analysis
+- `--output_bbox`: Output COCO format bbox for mAP evaluation
+- `--verbose`: Show progress bar
+- `--debug`: Run with debug mode (limited samples)
 
 ## Error Analysis
 
