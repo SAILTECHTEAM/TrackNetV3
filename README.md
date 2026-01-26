@@ -64,6 +64,27 @@ uv run python packages/tracknet-pt/extras/demos/demo_live.py --input 0
 uv run python packages/tracknet-pt/extras/demos/demo_live.py --input rtsp://<user>:<pass>@host:port/path
 ```
 
+## ONNX Runtime Demos
+
+Highly optimized inference using ONNX Runtime.
+
+### ONNX Offline Inference
+```bash
+uv run python packages/tracknet-onnx/extras/demos/demo_offline.py \
+    path/to/video.mp4 \
+    --model ckpts/TrackNet.onnx \
+    --out-csv results.csv \
+    --out-video annotated.mp4
+```
+
+### ONNX Online (Streaming) Inference
+```bash
+uv run python packages/tracknet-onnx/extras/demos/demo_online.py \
+    path/to/video.mp4 \
+    --model ckpts/TrackNet.onnx \
+    --show
+```
+
 ## Dataset Preprocessing
 
 Generate training sequences from raw videos and CSV labels:
