@@ -5,7 +5,7 @@ from typing import Any
 
 import cv2
 from tracknet.core.utils.general import write_pred_csv, write_pred_video
-from tracknet.onnx.inference.streaming_onnx import StreamingInferenceONNX
+from tracknet.onnx.inference import InpaintInference, TrackNetModule
 
 
 def results_to_pred_dict(results: list[dict[str, Any]], total_frames: int, img_scaler, img_shape):
@@ -33,6 +33,7 @@ def _build_argparser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Run TrackNet ONNX offline inference on a video.")
     p.add_argument("video", nargs="?", default="./test_video/1.mp4", help="Input video path")
     p.add_argument("--model", required=True, help="Path to TrackNet ONNX model")
+    p.add_argument("--inpaint", help="Path to InpaintNet ONNX model")
     p.add_argument("--seq-len", type=int, default=8, help="Sequence length for TrackNet")
     p.add_argument(
         "--bg-mode", default="", help="Background mode (subtract, concat, subtract_concat)"
@@ -66,7 +67,7 @@ def main(argv: list[str] | None = None) -> int:
 
     _total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    infer = StreamingInferenceONNX(
+    infer = TrackNetModule(
         model_path=args.model,
         seq_len=args.seq_len,
         bg_mode=args.bg_mode,
@@ -110,6 +111,11 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  median:     {s['t_median']:.3f}s")
 
     pred_dict = results_to_pred_dict(results, fid, infer.img_scaler, infer.img_shape)
+
+    if args.inpaint:
+        print(f"[INFO] Running InpaintNet: {args.inpaint}")
+        inpainter = InpaintInference(args.inpaint)
+        pred_dict = inpainter(pred_dict)
 
     if os.path.dirname(args.out_csv):
         os.makedirs(os.path.dirname(args.out_csv), exist_ok=True)

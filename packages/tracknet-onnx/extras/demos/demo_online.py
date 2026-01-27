@@ -6,7 +6,7 @@ from typing import Any
 
 import cv2
 from tracknet.core.utils.general import draw_traj, write_pred_csv, write_pred_video
-from tracknet.onnx.inference.streaming_onnx import StreamingInferenceONNX
+from tracknet.onnx.inference import InpaintModule, TrackNetModule
 
 
 def results_to_pred_dict(results: list[dict[str, Any]], total_frames: int, img_scaler, img_shape):
@@ -36,6 +36,7 @@ def _build_argparser() -> argparse.ArgumentParser:
     )
     p.add_argument("video", nargs="?", default="./test_video/1.mp4", help="Input video path")
     p.add_argument("--model", required=True, help="Path to TrackNet ONNX model")
+    p.add_argument("--inpaint", help="Path to InpaintNet ONNX model")
     p.add_argument("--seq-len", type=int, default=8, help="Sequence length for TrackNet")
     p.add_argument(
         "--bg-mode", default="", help="Background mode (subtract, concat, subtract_concat)"
@@ -70,13 +71,18 @@ def main(argv: list[str] | None = None) -> int:
 
     _total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    infer = StreamingInferenceONNX(
+    infer = TrackNetModule(
         model_path=args.model,
         seq_len=args.seq_len,
         bg_mode=args.bg_mode,
         eval_mode=args.eval_mode,
         median_warmup=args.median_warmup,
     )
+
+    inpaint_mod = None
+    if args.inpaint:
+        print(f"[INFO] Using InpaintNet: {args.inpaint}")
+        inpaint_mod = InpaintModule(args.inpaint)
 
     results = []
     fid = 0
@@ -97,6 +103,10 @@ def main(argv: list[str] | None = None) -> int:
             frame_buffer[fid] = frame_bgr.copy()
 
         out = infer.push(frame_bgr, frame_id=fid)
+
+        if out is not None:
+            if inpaint_mod is not None:
+                out = inpaint_mod.push(out, img_scaler=infer.img_scaler)
 
         if out is not None:
             results.append(out)
@@ -125,6 +135,19 @@ def main(argv: list[str] | None = None) -> int:
 
     print("\nFlushing remaining frames...")
     flush_results = infer.flush()
+    if inpaint_mod is not None:
+        # For each flushed track result, push to inpaint if possible
+        # but wait, infer.flush() returns a list of results.
+        # PT's InpaintModule.flush() is different.
+        # In this ONNX InpaintModule, push() takes one pred.
+        inpainted_flush = []
+        for res in flush_results:
+            out_i = inpaint_mod.push(res)
+            if out_i is not None:
+                inpainted_flush.append(out_i)
+        inpainted_flush.extend(inpaint_mod.flush())
+        flush_results = inpainted_flush
+
     results.extend(flush_results)
 
     for out in flush_results:

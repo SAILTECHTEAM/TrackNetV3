@@ -10,30 +10,11 @@ import numpy as np
 import onnxruntime as ort
 from tracknet.core.config.constants import HEIGHT, WIDTH
 
-
-def _ensemble_weights(seq_len: int, eval_mode: str) -> np.ndarray:
-    """Compute temporal ensemble weights without torch dependency."""
-
-    seq_len = int(seq_len)
-    if seq_len <= 0:
-        raise ValueError("seq_len must be positive")
-
-    if eval_mode in ("nonoverlap", "average"):
-        return (np.ones(seq_len, dtype=np.float32) / float(seq_len)).astype(np.float32)
-
-    if eval_mode == "weight":
-        w = np.ones(seq_len, dtype=np.float32)
-        half = int(np.ceil(seq_len / 2))
-        for i in range(half):
-            w[i] = float(i + 1)
-            w[seq_len - i - 1] = float(i + 1)
-        return (w / float(w.sum())).astype(np.float32)
-
-    raise ValueError(f"Invalid eval_mode: {eval_mode!r}")
+from .helpers import _ensemble_weights
 
 
-class StreamingInferenceONNX:
-    """Streaming TrackNet/InpaintNet inference with ONNX Runtime."""
+class TrackNetModule:
+    """Streaming TrackNet inference with ONNX Runtime."""
 
     def __init__(
         self,
@@ -277,3 +258,99 @@ class StreamingInferenceONNX:
         self._proc.clear()
         self._fidq.clear()
         return outs
+
+
+class InpaintModule:
+    """
+    Streaming InpaintNet for ONNX.
+    Matches the behavior of PT's InpaintModule.
+    """
+
+    def __init__(
+        self,
+        model_path: str,
+        seq_len: int = 16,
+        batch_size: int = 4,
+        device: Any = None,
+        img_scaler: Any = None,
+    ):
+        self.sess = ort.InferenceSession(model_path)
+        self.seq_len = seq_len
+        self.batch_size = batch_size
+        self.device = device
+        self.img_scaler = img_scaler
+        self._coords = []
+        self._mask = []
+        self._frame_ids = []
+
+    def push(self, pred: dict, img_scaler=None) -> dict | None:
+        if img_scaler is not None:
+            self.img_scaler = img_scaler
+
+        fid = int(pred["Frame"])
+        x = int(pred["X"])
+        y = int(pred["Y"])
+        vis = int(pred["Visibility"])
+
+        sx, sy = self.img_scaler
+
+        # Normalize
+        if vis == 1 and x > 0 and y > 0:
+            cx = float(x) / (float(WIDTH) * sx)
+            cy = float(y) / (float(HEIGHT) * sy)
+            cx = min(max(cx, 0.0), 1.0)
+            cy = min(max(cy, 0.0), 1.0)
+            m = 0.0
+        else:
+            cx, cy = 0.0, 0.0
+            m = 1.0
+
+        self._coords.append([cx, cy])
+        self._mask.append([m])
+        self._frame_ids.append(fid)
+
+        if len(self._coords) < self.seq_len:
+            return None
+
+        # Prepare batch (size 4 as per model requirement)
+        batch_coords = np.zeros((self.batch_size, self.seq_len, 2), dtype=np.float32)
+        batch_mask = np.zeros((self.batch_size, self.seq_len, 1), dtype=np.float32)
+
+        batch_coords[0] = np.array(self._coords, dtype=np.float32)
+        batch_mask[0] = np.array(self._mask, dtype=np.float32)
+
+        outputs = self.sess.run(None, {"coords": batch_coords, "mask": batch_mask})
+        out_batch = outputs[0]  # (4, 16, 2)
+
+        # PT logic: out = out * mask + coor * (1.0 - mask)
+        # We only care about the first frame in the current window for streaming output
+        out_coor = out_batch[0, 0] * batch_mask[0, 0] + batch_coords[0, 0] * (
+            1.0 - batch_mask[0, 0]
+        )
+
+        out_fid = self._frame_ids.pop(0)
+        self._coords.pop(0)
+        self._mask.pop(0)
+
+        px = int(out_coor[0] * float(WIDTH) * sx)
+        py = int(out_coor[1] * float(HEIGHT) * sy)
+        v = 0 if (px <= 0 or py <= 0) else 1
+
+        return {"Frame": out_fid, "X": px, "Y": py, "Visibility": v}
+
+    def flush(self) -> list[dict]:
+        results = []
+        while self._frame_ids:
+            fid = self._frame_ids.pop(0)
+            c = self._coords.pop(0)
+            m = self._mask.pop(0)
+            sx, sy = self.img_scaler
+
+            if m[0] >= 0.5:
+                px, py, v = 0, 0, 0
+            else:
+                px = int(c[0] * float(WIDTH) * sx)
+                py = int(c[1] * float(HEIGHT) * sy)
+                v = 0 if (px <= 0 or py <= 0) else 1
+            results.append({"Frame": fid, "X": px, "Y": py, "Visibility": v})
+        return results

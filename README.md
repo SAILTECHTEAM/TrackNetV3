@@ -17,12 +17,31 @@ This project uses `uv` for dependency management.
 ### 1. Install uv
 If you haven't installed `uv`, follow the [official installation guide](https://github.com/astral-sh/uv).
 
-### 2. Setup Workspace
-Clone the repository and sync the environment:
+### 2. Setup Environment
+
+Clone the repository:
 ```bash
 git clone https://github.com/qaz812345/TrackNetV3.git
 cd TrackNetV3
-uv sync
+```
+
+#### Install All Packages (Recommended)
+To install all workspace members (`tracknet-core`, `tracknet-pt`, `tracknet-onnx`) and their dependencies:
+```bash
+uv sync --all-packages
+```
+
+#### Install Specific Package
+If you only need a specific module, you can sync only that package to save space/time:
+```bash
+# For PyTorch (training/inference)
+uv sync --package tracknet-pt
+
+# For ONNX Runtime (high-performance inference)
+uv sync --package tracknet-onnx
+
+# For core utilities only
+uv sync --package tracknet-core
 ```
 
 ## Model Checkpoints
